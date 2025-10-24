@@ -317,7 +317,7 @@ export default {
     }
 
     const editCode = () => {
-      router.push(`/edit/${cssnippet.value.id}`)
+      router.push(`/cssnippet/${cssnippet.value.id}/edit`)
     }
 
     const confirmDelete = () => {

@@ -41,11 +41,8 @@ const routes = [
     component: CSSnippetEdit,
     meta: { requiresAuth: true }
   },
-  {
-    path: '/create',
-    redirect: '/cssnippet/new',
-    meta: { requiresAuth: true }
-  },
+  { path: '/create', redirect: '/cssnippet/new', meta: { requiresAuth: true } },
+  { path: '/edit/:id', redirect: '/cssnippet/:id/edit', meta: { requiresAuth: true } },
   {
     path: '/cssnippet/:id/edit',
     name: 'CSSnippetEdit',

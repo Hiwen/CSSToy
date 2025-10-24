@@ -184,17 +184,17 @@ export default {
         const snippet = await cssnippetStore.fetchById(id)
         
         // 检查权限
-        if (snippet.cssnippet.user_id !== userStore.user.id) {
+        if (snippet.user_id !== userStore.user.id) {
           error.value = '您没有权限编辑这个代码段'
           return
         }
         
         // 填充表单
-        form.title = snippet.cssnippet.title
-        form.description = snippet.cssnippet.description
-        form.cssCode = snippet.cssnippet.css_code
-        form.tags = snippet.cssnippet.tags.map(tag => tag.name)
-        form.isPublic = snippet.cssnippet.is_public
+        form.title = snippet.title
+        form.description = snippet.description
+        form.cssCode = snippet.css_content
+        form.tags = snippet.tags.map(tag => tag.name)
+        form.isPublic = snippet.is_public
         
         // 更新预览
         updatePreview()
@@ -207,7 +207,6 @@ export default {
     }
     
     const handleSubmit = async () => {
-      debugger;
       // 清空之前的错误信息
       error.value = ''
       
@@ -222,23 +221,26 @@ export default {
         const payload = {
           title: form.title.trim(),
           description: form.description.trim(),
-          cssCode: form.cssCode.trim(),
+          cssContent: form.cssCode.trim(),
           tags: form.tags,
           isPublic: form.isPublic
         }
         
-        let result
         if (isEditMode.value) {
-          result = await cssnippetStore.update(route.params.id, payload)
+          await cssnippetStore.update(route.params.id, payload)
+          alert('保存成功！')
         } else {
-          result = await cssnippetStore.create(payload)
+          await cssnippetStore.create(payload)
+          alert('创建成功！')
         }
         
-        // 保存成功后跳转到详情页
-        router.push(`/cssnippet/${result.id}`)
+        // 保存成功后跳转到主页
+        router.push('/')
       } catch (err) {
         console.error('Failed to save cssnippet:', err)
-        error.value = cssnippetStore.error || '保存失败，请稍后重试'
+        const errorMessage = cssnippetStore.error || '保存失败，请稍后重试'
+        error.value = errorMessage
+        alert(errorMessage)
       } finally {
         loading.value = false
       }
