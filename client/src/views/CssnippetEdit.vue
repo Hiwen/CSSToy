@@ -207,6 +207,7 @@ export default {
     }
     
     const handleSubmit = async () => {
+      debugger;
       // 清空之前的错误信息
       error.value = ''
       
@@ -260,7 +261,6 @@ export default {
     }
     
     const updatePreview = () => {
-      debugger
       try {
         // 清除之前的错误样式
         previewStyles.value = {}

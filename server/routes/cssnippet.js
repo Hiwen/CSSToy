@@ -170,6 +170,10 @@ router.get('/:id', (req, res) => {
 router.post('/', authMiddleware, (req, res) => {
   const { title, description, cssCode, isPublic, tags } = req.body;
   
+  // 记录详细的错误信息以便调试
+  console.log('创建CSS代码段请求数据:', { title, description: description?.substring(0, 50) + '...', cssCodeLength: cssCode?.length, isPublic, tags: tags?.length || 0 });
+  console.log('用户信息:', req.user);
+  
   if (!title || !cssCode) {
     return res.status(400).json({ error: '标题和CSS内容不能为空' });
   }
@@ -181,32 +185,39 @@ router.post('/', authMiddleware, (req, res) => {
   // 过滤CSS代码
   const filteredCSS = filterCSS(cssCode);
   
-  db.run(
-    'INSERT INTO cssnippets (title, description, css_content, is_public, user_id) VALUES (?, ?, ?, ?, ?)',
-    [title, description || '', filteredCSS, isPublic ? 1 : 0, req.user.userId],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: '创建CSS代码段失败' });
-      }
-      
-      const cssnippetId = this.lastID;
-      
-      // 保存版本
-      db.run(
-        'INSERT INTO cssnippet_versions (cssnippet_id, css_content) VALUES (?, ?)',
-        [cssnippetId, filteredCSS]
-      );
-      
-      // 处理标签
-      if (tags && tags.length > 0) {
-        handleTags(cssnippetId, tags, () => {
+  try {
+    db.run(
+      'INSERT INTO cssnippets (title, description, css_content, user_id) VALUES (?, ?, ?, ?)',
+      [title, description || '', filteredCSS, req.user.userId],
+      function(err) {
+        if (err) {
+          console.error('创建CSS代码段数据库错误:', err.message);
+          return res.status(500).json({ error: '创建CSS代码段失败', details: err.message });
+        }
+        
+        const cssnippetId = this.lastID;
+        console.log('成功创建CSS代码段，ID:', cssnippetId);
+        
+        // 保存版本
+        db.run(
+          'INSERT INTO cssnippet_versions (cssnippet_id, css_content) VALUES (?, ?)',
+          [cssnippetId, filteredCSS]
+        );
+        
+        // 处理标签
+        if (tags && tags.length > 0) {
+          handleTags(cssnippetId, tags, () => {
+            res.status(201).json({ message: '创建成功', id: cssnippetId });
+          });
+        } else {
           res.status(201).json({ message: '创建成功', id: cssnippetId });
-        });
-      } else {
-        res.status(201).json({ message: '创建成功', id: cssnippetId });
+        }
       }
-    }
-  );
+    );
+  } catch (error) {
+    console.error('创建CSS代码段异常:', error);
+    res.status(500).json({ error: '创建CSS代码段时发生异常', details: error.message });
+  }
 });
 
 // 更新CSS代码段
