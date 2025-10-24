@@ -195,6 +195,11 @@ const cssnippetStore = defineStore('cssnippet', {
       
       updateEntry(this.popular)
       updateEntry(this.latest)
+    },
+    
+    // 获取代码段详情（与fetchById功能相同，为兼容组件调用）
+    async getCssnippetDetail(id) {
+      return this.fetchById(id)
     }
   }
 })

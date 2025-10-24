@@ -1,12 +1,12 @@
 <template>
   <div class="cssnippet-detail-container">
     <div v-if="loading" class="loading">加载中...</div>
-    
+
     <div v-else-if="cssnippet" class="content-wrapper">
       <!-- 头部信息 -->
       <div class="detail-header">
         <h1>{{ cssnippet.title }}</h1>
-        
+
         <div class="author-info">
           <img :src="getAvatar(cssnippet.user_id)" alt="作者头像" class="avatar">
           <div class="author-details">
@@ -14,55 +14,42 @@
             <span class="publish-date">{{ formatDate(cssnippet.created_at) }}</span>
           </div>
         </div>
-        
+
         <div class="tags-container">
-          <span 
-            v-for="tag in cssnippet.tags" 
-            :key="tag.id"
-            class="tag"
-            @click="handleTagClick(tag.name)"
-          >
+          <span v-for="tag in cssnippet.tags" :key="tag.id" class="tag" @click="handleTagClick(tag.name)">
             {{ tag.name }}
           </span>
         </div>
-        
+
         <div class="description">{{ cssnippet.description }}</div>
-        
+
         <div class="action-buttons">
-          <button 
-            class="btn btn-outline" 
-            @click="toggleLike"
-            :class="{ 'active': cssnippet.is_liked }"
-          >
-            <span class="icon">{{ cssnippet.is_liked ? '❤️' : '🤍' }}</span>
-            <span>{{ cssnippet.like_count }}</span>
+          <button class="btn btn-outline" @click="toggleLike" :class="{ 'active': cssnippet.isLiked }">
+            <span class="icon">{{ cssnippet.isLiked ? '❤️' : '🤍' }}</span>
+            <span>{{ cssnippet.likes_count }}</span>
           </button>
-          
-          <button 
-            class="btn btn-outline" 
-            @click="toggleFavorite"
-            :class="{ 'active': cssnippet.is_favorited }"
-          >
-            <span class="icon">{{ cssnippet.is_favorited ? '⭐' : '☆' }}</span>
-            <span>{{ cssnippet.favorite_count }}</span>
+
+          <button class="btn btn-outline" @click="toggleFavorite" :class="{ 'active': cssnippet.isCollected }">
+            <span class="icon">{{ cssnippet.isCollected ? '⭐' : '☆' }}</span>
+            <span>{{ cssnippet.collections_count }}</span>
           </button>
-          
+
           <button class="btn btn-outline" @click="copyCode">
             <span class="icon">📋</span>
             <span>{{ copySuccess ? '已复制' : '复制代码' }}</span>
           </button>
-          
+
           <button class="btn btn-outline" @click="shareCode">
             <span class="icon">🔗</span>
             <span>分享</span>
           </button>
-          
+
           <template v-if="isOwner">
             <button class="btn btn-primary" @click="editCode">
               <span class="icon">✏️</span>
               <span>编辑</span>
             </button>
-            
+
             <button class="btn btn-danger" @click="confirmDelete">
               <span class="icon">🗑️</span>
               <span>删除</span>
@@ -70,14 +57,14 @@
           </template>
         </div>
       </div>
-      
+
       <!-- 代码和预览区域 -->
       <div class="code-preview-container">
         <div class="code-section">
           <h3>CSS 代码</h3>
-          <pre><code class="language-css">{{ cssnippet.css_code }}</code></pre>
+          <pre><code class="language-css">{{ cssnippet.css_content }}</code></pre>
         </div>
-        
+
         <div class="preview-section">
           <h3>实时预览</h3>
           <div class="preview-box">
@@ -85,54 +72,37 @@
           </div>
         </div>
       </div>
-      
+
       <!-- HTML 模板选择 -->
       <div class="html-template-section" v-if="htmlTemplates.length > 0">
         <h3>选择 HTML 模板</h3>
         <div class="templates-grid">
-          <div 
-            v-for="template in htmlTemplates" 
-            :key="template.id"
-            class="template-item"
-            :class="{ 'active': selectedTemplate === template.id }"
-            @click="selectTemplate(template.id)"
-          >
+          <div v-for="template in htmlTemplates" :key="template.id" class="template-item"
+            :class="{ 'active': selectedTemplate === template.id }" @click="selectTemplate(template.id)">
             <div class="template-preview" v-html="template.preview_html"></div>
             <span>{{ template.name }}</span>
           </div>
         </div>
       </div>
-      
+
       <!-- 评论区域 -->
       <div class="comments-section">
         <h3>评论 ({{ comments.length }})</h3>
-        
+
         <!-- 评论表单 -->
         <div v-if="userStore.isLoggedIn" class="comment-form">
-          <textarea 
-            v-model="newComment.content" 
-            placeholder="写下你的评论..."
-            rows="3"
-          ></textarea>
-          <button 
-            class="btn btn-primary" 
-            @click="submitComment"
-            :disabled="!newComment.content.trim()"
-          >
+          <textarea v-model="newComment.content" placeholder="写下你的评论..." rows="3"></textarea>
+          <button class="btn btn-primary" @click="submitComment" :disabled="!newComment.content.trim()">
             发表评论
           </button>
         </div>
         <div v-else class="login-prompt">
           <router-link to="/login" class="link">登录</router-link> 后发表评论
         </div>
-        
+
         <!-- 评论列表 -->
         <div class="comments-list">
-          <div 
-            v-for="comment in comments" 
-            :key="comment.id"
-            class="comment-item"
-          >
+          <div v-for="comment in comments" :key="comment.id" class="comment-item">
             <div class="comment-header">
               <img :src="getAvatar(comment.user_id)" alt="评论者头像" class="avatar">
               <div class="comment-info">
@@ -140,36 +110,26 @@
                 <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
               </div>
               <div class="comment-actions">
-                <button 
-                  class="btn btn-sm" 
-                  @click="replyToComment(comment)"
-                >
+                <button class="btn btn-sm" @click="replyToComment(comment)">
                   回复
                 </button>
-                <button 
-                  v-if="isCommentOwner(comment)" 
-                  class="btn btn-sm text-danger"
-                  @click="deleteComment(comment.id)"
-                >
+                <button v-if="isCommentOwner(comment)" class="btn btn-sm text-danger"
+                  @click="deleteComment(comment.id)">
                   删除
                 </button>
               </div>
             </div>
-            
+
             <div class="comment-content">
               <span v-if="comment.parent_id">
                 <a href="#" class="link">@{{ getUsernameById(comment.parent_user_id) }}</a>
               </span>
               {{ comment.content }}
             </div>
-            
+
             <!-- 回复表单 -->
             <div v-if="replyingTo === comment.id" class="reply-form">
-              <textarea 
-                v-model="replyContent" 
-                placeholder="回复 @{{ comment.username }}..."
-                rows="2"
-              ></textarea>
+              <textarea v-model="replyContent" placeholder="回复 @{{ comment.username }}..." rows="2"></textarea>
               <div class="reply-actions">
                 <button class="btn btn-sm btn-primary" @click="submitReply(comment.id)">
                   回复
@@ -179,14 +139,10 @@
                 </button>
               </div>
             </div>
-            
+
             <!-- 子评论 -->
             <div class="child-comments" v-if="comment.children && comment.children.length > 0">
-              <div 
-                v-for="child in comment.children" 
-                :key="child.id"
-                class="comment-item child"
-              >
+              <div v-for="child in comment.children" :key="child.id" class="comment-item child">
                 <div class="comment-header">
                   <img :src="getAvatar(child.user_id)" alt="回复者头像" class="avatar">
                   <div class="comment-info">
@@ -194,22 +150,16 @@
                     <span class="comment-time">{{ formatDate(child.created_at) }}</span>
                   </div>
                   <div class="comment-actions">
-                    <button 
-                      class="btn btn-sm" 
-                      @click="replyToComment(child)"
-                    >
+                    <button class="btn btn-sm" @click="replyToComment(child)">
                       回复
                     </button>
-                    <button 
-                      v-if="isCommentOwner(child)" 
-                      class="btn btn-sm text-danger"
-                      @click="deleteComment(child.id)"
-                    >
+                    <button v-if="isCommentOwner(child)" class="btn btn-sm text-danger"
+                      @click="deleteComment(child.id)">
                       删除
                     </button>
                   </div>
                 </div>
-                
+
                 <div class="comment-content">
                   <a href="#" class="link">@{{ getUsernameById(child.parent_user_id) }}</a>
                   {{ child.content }}
@@ -219,29 +169,25 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 相关推荐 -->
       <div class="related-section" v-if="relatedSnippets.length > 0">
         <h3>相关推荐</h3>
         <div class="related-snippets">
-          <div 
-            v-for="snippet in relatedSnippets" 
-            :key="snippet.id"
-            class="related-snippet-item"
-            @click="goToDetail(snippet.id)"
-          >
+          <div v-for="snippet in relatedSnippets" :key="snippet.id" class="related-snippet-item"
+            @click="goToDetail(snippet.id)">
             <div class="related-snippet-title">{{ snippet.title }}</div>
             <div class="related-snippet-meta">
               <span>{{ snippet.username }}</span>
-              <span>❤️ {{ snippet.like_count }}</span>
+              <span>❤️ {{ snippet.likes_count }}</span>
             </div>
           </div>
         </div>
       </div>
     </div>
-    
+
     <div v-else class="not-found">未找到代码段</div>
-    
+
     <!-- 删除确认弹窗 -->
     <div v-if="showDeleteConfirm" class="modal-overlay" @click="showDeleteConfirm = false">
       <div class="modal-content card" @click.stop>
@@ -269,7 +215,7 @@ export default {
     const router = useRouter()
     const cssnippetStore = useCssnippetStore()
     const userStore = useUserStore()
-    
+
     const cssnippet = ref(null)
     const loading = ref(true)
     const comments = ref([])
@@ -283,74 +229,78 @@ export default {
     const selectedTemplate = ref(1)
     const copySuccess = ref(false)
     const showDeleteConfirm = ref(false)
-    
+
     // 评论相关
     const newComment = ref({ content: '' })
     const replyingTo = ref(null)
     const replyContent = ref('')
-    
+
     // 计算属性
     const isOwner = computed(() => {
       if (!cssnippet.value || !userStore.user) return false
       return cssnippet.value.user_id === userStore.user.id
     })
-    
+
     const cssCodeStyles = computed(() => {
-      if (!cssnippet.value) return {}
-      return { raw: cssnippet.value.css_code }
+      if (!cssnippet.value) {
+        return "";
+      }
+
+      return cssnippet.value.css_content;
     })
-    
+
     // 方法
     const loadCssnippetDetail = async () => {
       const id = route.params.id
       try {
         loading.value = true
         const data = await cssnippetStore.getCssnippetDetail(id)
-        cssnippet.value = data.cssnippet
-        comments.value = data.comments
-        relatedSnippets.value = data.related
+        cssnippet.value = data
+        // 暂时清空评论和相关代码段，因为API不返回这些数据
+        comments.value = []
+        relatedSnippets.value = []
       } catch (err) {
         console.error('Failed to load cssnippet detail:', err)
       } finally {
         loading.value = false
       }
     }
-    
+
     const toggleLike = async () => {
       if (!userStore.isLoggedIn) {
         router.push('/login')
         return
       }
-      
+
       try {
         await cssnippetStore.toggleLike(cssnippet.value.id)
         // 更新本地状态
-        cssnippet.value.is_liked = !cssnippet.value.is_liked
-        cssnippet.value.like_count += cssnippet.value.is_liked ? 1 : -1
+        cssnippet.value.isLiked = !cssnippet.value.isLiked
+        cssnippet.value.likes_count += cssnippet.value.isLiked ? 1 : -1
       } catch (err) {
         console.error('Failed to toggle like:', err)
       }
     }
-    
+
     const toggleFavorite = async () => {
       if (!userStore.isLoggedIn) {
         router.push('/login')
         return
       }
-      
+
       try {
-        await cssnippetStore.toggleFavorite(cssnippet.value.id)
+        await cssnippetStore.toggleCollect(cssnippet.value.id)
         // 更新本地状态
-        cssnippet.value.is_favorited = !cssnippet.value.is_favorited
-        cssnippet.value.favorite_count += cssnippet.value.is_favorited ? 1 : -1
+        cssnippet.value.isCollected = !cssnippet.value.isCollected
+        cssnippet.value.collections_count += cssnippet.value.isCollected ? 1 : -1
       } catch (err) {
         console.error('Failed to toggle favorite:', err)
       }
     }
-    
+
     const copyCode = async () => {
       try {
-        await navigator.clipboard.writeText(cssnippet.value.css_code)
+        await navigator.clipboard.writeText(cssnippet.value.css_content)
         copySuccess.value = true
         setTimeout(() => {
           copySuccess.value = false
@@ -359,21 +309,21 @@ export default {
         console.error('Failed to copy code:', err)
       }
     }
-    
+
     const shareCode = () => {
       const url = window.location.href
       // 这里可以实现分享功能，比如使用 Web Share API
       alert(`分享链接：${url}`)
     }
-    
+
     const editCode = () => {
       router.push(`/edit/${cssnippet.value.id}`)
     }
-    
+
     const confirmDelete = () => {
       showDeleteConfirm.value = true
     }
-    
+
     const deleteCode = async () => {
       try {
         await cssnippetStore.deleteCssnippet(cssnippet.value.id)
@@ -384,14 +334,14 @@ export default {
         showDeleteConfirm.value = false
       }
     }
-    
+
     const selectTemplate = (id) => {
       selectedTemplate.value = id
     }
-    
+
     const submitComment = async () => {
       if (!newComment.value.content.trim()) return
-      
+
       try {
         const comment = await cssnippetStore.addComment({
           cssnippet_id: cssnippet.value.id,
@@ -403,22 +353,22 @@ export default {
         console.error('Failed to submit comment:', err)
       }
     }
-    
+
     const replyToComment = (comment) => {
       replyingTo.value = comment.id
       replyContent.value = ''
     }
-    
+
     const submitReply = async (parentId) => {
       if (!replyContent.value.trim()) return
-      
+
       try {
         const reply = await cssnippetStore.addComment({
           cssnippet_id: cssnippet.value.id,
           parent_id: parentId,
           content: replyContent.value
         })
-        
+
         // 更新评论树
         const findAndAddReply = (commentsList) => {
           for (let comment of commentsList) {
@@ -433,19 +383,19 @@ export default {
           }
           return false
         }
-        
+
         findAndAddReply(comments.value)
         cancelReply()
       } catch (err) {
         console.error('Failed to submit reply:', err)
       }
     }
-    
+
     const cancelReply = () => {
       replyingTo.value = null
       replyContent.value = ''
     }
-    
+
     const deleteComment = async (commentId) => {
       try {
         await cssnippetStore.deleteComment(commentId)
@@ -462,31 +412,31 @@ export default {
           }
           return false
         }
-        
+
         removeComment(comments.value)
       } catch (err) {
         console.error('Failed to delete comment:', err)
       }
     }
-    
+
     const isCommentOwner = (comment) => {
       if (!userStore.user) return false
       return comment.user_id === userStore.user.id
     }
-    
+
     const handleTagClick = (tagName) => {
       router.push(`/search?q=${encodeURIComponent(tagName)}&type=tag`)
     }
-    
+
     const goToDetail = (id) => {
-      router.push(`/detail/${id}`)
+      router.push(`/cssnippet/${id}`)
     }
-    
+
     const getAvatar = (userId) => {
       // 简单的头像生成逻辑，实际项目中可能需要根据用户信息获取真实头像
       return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
     }
-    
+
     const formatDate = (dateString) => {
       const date = new Date(dateString)
       return new Intl.DateTimeFormat('zh-CN', {
@@ -497,7 +447,7 @@ export default {
         minute: '2-digit'
       }).format(date)
     }
-    
+
     const getUsernameById = (userId) => {
       // 这里可以从已加载的评论中查找用户名，或者维护一个用户ID到用户名的映射
       const findUser = (commentsList) => {
@@ -514,12 +464,12 @@ export default {
       }
       return findUser(comments.value) || '用户'
     }
-    
+
     // 组件挂载时加载数据
     onMounted(() => {
       loadCssnippetDetail()
     })
-    
+
     return {
       cssnippet,
       loading,
@@ -690,12 +640,14 @@ export default {
   padding: 30px;
 }
 
-.code-section, .preview-section {
+.code-section,
+.preview-section {
   border-radius: 8px;
   overflow: hidden;
 }
 
-.code-section h3, .preview-section h3 {
+.code-section h3,
+.preview-section h3 {
   margin-bottom: 15px;
   color: #333;
 }
@@ -965,15 +917,15 @@ export default {
   .code-preview-container {
     grid-template-columns: 1fr;
   }
-  
+
   .action-buttons {
     justify-content: center;
   }
-  
+
   .related-snippets {
     grid-template-columns: 1fr;
   }
-  
+
   .detail-header h1 {
     font-size: 24px;
   }
