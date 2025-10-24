@@ -20,7 +20,11 @@
         </div>
         
         <div v-else class="nav-user">
-          <router-link to="/create" class="btn btn-primary btn-create">新建CSS</router-link>
+          <router-link 
+            v-if="!isCreateOrEditPage" 
+            to="/create" 
+            class="btn btn-primary btn-create"
+          >新建CSS</router-link>
           <router-link to="/profile" class="avatar-link">
             <img :src="user.avatar || '/default-avatar.png'" :alt="user.username" class="avatar">
           </router-link>
@@ -47,17 +51,26 @@
 
 <script>
 import { computed, ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from './stores/user'
 
 export default {
   name: 'App',
   setup() {
     const router = useRouter()
+    const route = useRoute()
     const userStore = useUserStore()
     const searchQuery = ref('')
     
     const user = computed(() => userStore.user)
+    
+    // 判断是否在新建或编辑页面
+    const isCreateOrEditPage = computed(() => {
+      // 根据实际路由路径修改匹配逻辑
+      const currentPath = route.path
+      return currentPath === '/cssnippet/new' || 
+             currentPath.includes('/cssnippet/') && currentPath.includes('/edit')
+    })
     
     const handleSearch = () => {
       if (searchQuery.value.trim()) {
@@ -76,7 +89,8 @@ export default {
     return {
       user,
       searchQuery,
-      handleSearch
+      handleSearch,
+      isCreateOrEditPage
     }
   }
 }
