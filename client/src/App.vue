@@ -20,6 +20,7 @@
         </div>
         
         <div v-else class="nav-user">
+          <router-link to="/create" class="btn btn-primary btn-create">新建CSS</router-link>
           <router-link to="/profile" class="avatar-link">
             <img :src="user.avatar || '/default-avatar.png'" :alt="user.username" class="avatar">
           </router-link>

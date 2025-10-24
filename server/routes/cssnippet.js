@@ -168,26 +168,22 @@ router.get('/:id', (req, res) => {
 
 // 创建CSS代码段
 router.post('/', authMiddleware, (req, res) => {
-  const { title, description, cssContent, htmlContent, tags } = req.body;
+  const { title, description, cssCode, isPublic, tags } = req.body;
   
-  if (!title || !cssContent) {
+  if (!title || !cssCode) {
     return res.status(400).json({ error: '标题和CSS内容不能为空' });
   }
   
-  if (cssContent.length > 10000) {
+  if (cssCode.length > 10000) {
     return res.status(400).json({ error: 'CSS内容不能超过10000字符' });
   }
   
-  if (htmlContent && htmlContent.length > 5000) {
-    return res.status(400).json({ error: 'HTML内容不能超过5000字符' });
-  }
-  
   // 过滤CSS代码
-  const filteredCSS = filterCSS(cssContent);
+  const filteredCSS = filterCSS(cssCode);
   
   db.run(
-    'INSERT INTO cssnippets (title, description, css_content, html_content, user_id) VALUES (?, ?, ?, ?, ?)',
-    [title, description || '', filteredCSS, htmlContent || '', req.user.userId],
+    'INSERT INTO cssnippets (title, description, css_content, is_public, user_id) VALUES (?, ?, ?, ?, ?)',
+    [title, description || '', filteredCSS, isPublic ? 1 : 0, req.user.userId],
     function(err) {
       if (err) {
         return res.status(500).json({ error: '创建CSS代码段失败' });
@@ -197,8 +193,8 @@ router.post('/', authMiddleware, (req, res) => {
       
       // 保存版本
       db.run(
-        'INSERT INTO cssnippet_versions (cssnippet_id, css_content, html_content) VALUES (?, ?, ?)',
-        [cssnippetId, filteredCSS, htmlContent || '']
+        'INSERT INTO cssnippet_versions (cssnippet_id, css_content) VALUES (?, ?)',
+        [cssnippetId, filteredCSS]
       );
       
       // 处理标签

@@ -78,7 +78,12 @@
         <div class="preview-section">
           <h3>实时预览</h3>
           <div class="preview-box">
-            <div class="preview-element" :style="previewStyles"></div>
+            <div 
+              id="preview-element" 
+              class="preview-element" 
+              :style="previewStyles"
+              ref="previewRef"
+            >CSS 预览效果</div>
           </div>
         </div>
         
@@ -127,6 +132,12 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const previewStyles = ref({})
+    const previewRef = ref(null)
+    
+    // 监听CSS代码变化，确保预览同步更新
+    watch(() => form.cssCode, () => {
+      updatePreview()
+    })
     
     const isEditMode = computed(() => {
       return !!route.params.id
@@ -170,7 +181,7 @@ export default {
       
       try {
         loading.value = true
-        const snippet = await cssnippetStore.getCssnippetDetail(id)
+        const snippet = await cssnippetStore.fetchById(id)
         
         // 检查权限
         if (snippet.cssnippet.user_id !== userStore.user.id) {
@@ -217,13 +228,13 @@ export default {
         
         let result
         if (isEditMode.value) {
-          result = await cssnippetStore.updateCssnippet(route.params.id, payload)
+          result = await cssnippetStore.update(route.params.id, payload)
         } else {
-          result = await cssnippetStore.createCssnippet(payload)
+          result = await cssnippetStore.create(payload)
         }
         
         // 保存成功后跳转到详情页
-        router.push(`/detail/${result.id}`)
+        router.push(`/cssnippet/${result.id}`)
       } catch (err) {
         console.error('Failed to save cssnippet:', err)
         error.value = cssnippetStore.error || '保存失败，请稍后重试'
@@ -249,13 +260,37 @@ export default {
     }
     
     const updatePreview = () => {
-      // 简单的样式应用，实际项目中可能需要更复杂的处理
-      previewStyles.value = { raw: form.cssCode }
+      debugger
+      try {
+        // 清除之前的错误样式
+        previewStyles.value = {}
+        
+        // 直接通过DOM引用设置样式，这是最可靠的方法
+        if (previewRef.value) {
+          // 使用try-catch确保即使CSS语法错误也不会阻塞功能
+          try {
+            previewRef.value.style.cssText = form.cssCode
+          } catch (cssError) {
+            console.warn('CSS语法错误:', cssError)
+            // 如果CSS语法错误，设置错误提示样式
+            previewRef.value.style.cssText = 'background-color: #ffebee; color: #c62828; padding: 16px; border-radius: 4px;'
+          }
+        }
+      } catch (err) {
+        console.error('预览更新失败:', err)
+        // 作为最后的保障，使用响应式对象设置错误样式
+        previewStyles.value = {
+          backgroundColor: '#ffebee',
+          color: '#c62828',
+          padding: '16px',
+          borderRadius: '4px'
+        }
+      }
     }
     
     // 检查用户登录状态
     const checkLoginStatus = () => {
-      if (!userStore.isLoggedIn) {
+      if (!userStore.user) {
         error.value = '请先登录'
         setTimeout(() => {
           router.push('/login')
@@ -266,7 +301,7 @@ export default {
     // 组件挂载时
     onMounted(() => {
       checkLoginStatus()
-      if (isEditMode.value && userStore.isLoggedIn) {
+      if (isEditMode.value && userStore.user) {
         loadExistingCssnippet()
       } else {
         // 为新创建的代码段设置默认预览样式
@@ -300,6 +335,7 @@ export default {
       error,
       isEditMode,
       previewStyles,
+      previewRef,
       handleSubmit,
       addTag,
       removeTag,
