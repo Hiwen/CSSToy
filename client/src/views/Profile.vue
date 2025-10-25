@@ -205,12 +205,13 @@
                 
                 <div class="snippet-tags">
                   <span 
-                    v-for="tag in snippet.tags.slice(0, 3)" 
+                    v-for="tag in (snippet.tags || []).slice(0, 3)" 
                     :key="tag.id"
                     class="tag"
                   >
                     {{ tag.name }}
                   </span>
+                  <span v-if="snippet.tags && snippet.tags.length > 3" class="tag-more">+{{ snippet.tags.length - 3 }}</span>
                 </div>
                 
                 <div class="snippet-meta">
@@ -281,12 +282,13 @@
                 
                 <div class="snippet-tags">
                   <span 
-                    v-for="tag in snippet.tags.slice(0, 3)" 
+                    v-for="tag in (snippet.tags || []).slice(0, 3)" 
                     :key="tag.id"
                     class="tag"
                   >
                     {{ tag.name }}
                   </span>
+                  <span v-if="snippet.tags && snippet.tags.length > 3" class="tag-more">+{{ snippet.tags.length - 3 }}</span>
                 </div>
                 
                 <div class="snippet-meta">
@@ -612,13 +614,13 @@ export default {
       activeTab.value = tab
       
       // 切换标签时加载对应数据
-      if (tab === 'my-snippets' && mySnippets.length === 0) {
+      if (tab === 'my-snippets' && mySnippets.value.length === 0) {
         loadMySnippets(1)
-      } else if (tab === 'liked-snippets' && likedSnippets.length === 0) {
+      } else if (tab === 'liked-snippets' && likedSnippets.value.length === 0) {
         loadLikedSnippets(1)
-      } else if (tab === 'favorited-snippets' && favoritedSnippets.length === 0) {
+      } else if (tab === 'favorited-snippets' && favoritedSnippets.value.length === 0) {
         loadFavoritedSnippets(1)
-      } else if (tab === 'my-comments' && myComments.length === 0) {
+      } else if (tab === 'my-comments' && myComments.value.length === 0) {
         loadMyComments(1)
       }
     }
@@ -784,7 +786,8 @@ export default {
     }
     
     const getPreviewStyle = (cssCode) => {
-      return { raw: cssCode.substring(0, 200) }
+      // 添加空值检查，防止调用undefined/null的substring方法
+      return { raw: cssCode ? cssCode.substring(0, 200) : '' }
     }
     
     const getAvatar = (userId) => {
