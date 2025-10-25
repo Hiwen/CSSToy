@@ -124,15 +124,11 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
 import { useUserStore } from '../stores/user'
-
-export default {
-  name: 'CssnippetEdit',
-  setup() {
     const route = useRoute()
     const router = useRouter()
     const cssnippetStore = useCssnippetStore()
@@ -394,23 +390,7 @@ ${form.cssCode}
       }
     })
     
-    return {
-      form,
-      tagInput,
-      errors,
-      loading,
-      error,
-      isEditMode,
-      previewStyles,
-      previewRef,
-      handleSubmit,
-      addTag,
-      removeTag,
-      updatePreview,
-      insertHtmlTemplate
-    }
-  }
-}
+// 所有变量和函数自动暴露给模板
 </script>
 
 <style scoped>

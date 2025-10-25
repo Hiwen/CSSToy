@@ -188,15 +188,11 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
 import CssPreview from '../components/CssPreview.vue'
-
-export default {
-  name: 'Search',
-  setup() {
     const route = useRoute()
     const router = useRouter()
     const cssnippetStore = useCssnippetStore()
@@ -340,26 +336,7 @@ export default {
       }
     }
     
-    return {
-      searchQuery,
-      searchType,
-      filterBy,
-      sortBy,
-      currentPage,
-      loading,
-      results,
-      totalResults,
-      totalPages,
-      popularTags,
-      handleSearch,
-      handleInput,
-      goToPage,
-      goToDetail,
-      searchByTag,
-      getAvatar
-    }
-  }
-}
+// 所有变量和函数自动暴露给模板
 </script>
 
 <style scoped>

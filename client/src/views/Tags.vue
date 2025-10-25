@@ -224,14 +224,10 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
-
-export default {
-  name: 'Tags',
-  setup() {
     const router = useRouter()
     const cssnippetStore = useCssnippetStore()
     
@@ -426,39 +422,8 @@ export default {
       loadAllTags()
     })
     
-    return {
-      popularTags,
-      allTags,
-      searchResults,
-      snippets,
-      searchQuery,
-      selectedTag,
-      selectedLetter,
-      sortOrder,
-      loading,
-      currentPage,
-      pageSize,
-      totalSnippets,
-      totalTags,
-      totalSnippetsWithTags,
-      mostUsedTag,
-      alphabetLetters,
-      tagCombinations,
-      filteredTags,
-      loadSnippets,
-      handleSearch,
-      filterByTag,
-      clearTagFilter,
-      filterByLetter,
-      goToDetail,
-      getTagSize,
-      getTagOpacity,
-      getPreviewStyle,
-      getAvatar,
-      formatDate
-    }
-  }
-}
+// 所有变量和函数自动暴露给模板
+     // 继续暴露其他函数
 </script>
 
 <style scoped>

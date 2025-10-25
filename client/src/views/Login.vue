@@ -96,7 +96,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
@@ -167,21 +167,7 @@ export default {
       resetSuccess.value = ''
     }
     
-    return {
-      form,
-      resetForm,
-      loading,
-      error,
-      showForgotPassword,
-      resetLoading,
-      resetError,
-      resetSuccess,
-      handleSubmit,
-      handlePasswordReset,
-      closeForgotPassword
-    }
-  }
-}
+// 所有变量和函数自动暴露给模板
 </script>
 
 <style scoped>

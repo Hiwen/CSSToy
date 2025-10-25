@@ -97,14 +97,10 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
-
-export default {
-  name: 'Register',
-  setup() {
     const router = useRouter()
     const userStore = useUserStore()
     
@@ -199,15 +195,7 @@ export default {
       }
     }
     
-    return {
-      form,
-      errors,
-      loading,
-      error,
-      handleSubmit
-    }
-  }
-}
+// 所有变量和函数自动暴露给模板
 </script>
 
 <style scoped>

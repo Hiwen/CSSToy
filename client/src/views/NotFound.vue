@@ -75,15 +75,11 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useCssnippetStore } from '../stores/cssnippet'
-
-export default {
-  name: 'NotFound',
-  setup() {
     const router = useRouter()
     const userStore = useUserStore()
     const cssnippetStore = useCssnippetStore()
@@ -111,14 +107,7 @@ export default {
       loadPopularTags()
     })
     
-    return {
-      userStore,
-      searchQuery,
-      popularTags,
-      search
-    }
-  }
-}
+// 所有变量和函数自动暴露给模板
 </script>
 
 <style scoped>
