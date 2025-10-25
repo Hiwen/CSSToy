@@ -69,10 +69,10 @@ const previewHTML = computed(() => {
 <style scoped>
 .css-preview-wrapper {
   width: 100%;
-  height: 150px; /* 默认高度，可根据需要调整 */
+  height: 150px;
   overflow: hidden;
   background-color: #f9f9f9;
-  border-radius: 8px;
+  border-radius: 8px 8px 0 0;
   position: relative;
 }
 
@@ -99,6 +99,15 @@ const previewHTML = computed(() => {
   justify-content: center;
   text-align: center;
   color: #333;
+}
+
+/* 确保自定义HTML内容也居中显示 */
+.preview-wrapper > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 /* 防止样式影响父元素 */

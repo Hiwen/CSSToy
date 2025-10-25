@@ -1,0 +1,390 @@
+<template>
+  <div class="cssnippet-card card" @click.self="handleClick">
+    <CssPreview :cssnippet="cssnippet" class="cssnippet-preview" />
+    <h3 class="cssnippet-title">{{ cssnippet.title }}</h3>
+    <p v-if="cssnippet.description" class="cssnippet-description">{{ truncateDescription }}</p>
+    
+    <div v-if="showTags && cssnippet.tags" class="cssnippet-tags">
+      <router-link 
+        v-for="tag in cssnippet.tags.slice(0, maxTags)" 
+        :key="tag.id" 
+        :to="{ name: 'Tag', params: { name: tag.name } }"
+        class="tag"
+      >
+        {{ tag.name }}
+      </router-link>
+      <span v-if="cssnippet.tags.length > maxTags" class="tag-more">+{{ cssnippet.tags.length - maxTags }}</span>
+    </div>
+    
+    <div class="cssnippet-info">
+      <div v-if="showAuthor" class="author-info">
+        <img :src="avatarSrc" :alt="cssnippet.username || '用户'" class="avatar small">
+        <span>{{ cssnippet.username || '未知用户' }}</span>
+      </div>
+      
+      <div class="cssnippet-meta">
+        <button class="meta-item btn-icon" @click.stop="$emit('like')" :class="{ 'active': isLiked }">
+          <span class="icon">{{ isLiked ? '❤️' : '🤍' }}</span>
+          <span>{{ likesCount }}</span>
+        </button>
+        <button class="meta-item btn-icon" @click.stop="$emit('favorite')" :class="{ 'active': isFavorited }">
+          <span class="icon">{{ isFavorited ? '⭐' : '☆' }}</span>
+          <span>{{ favoritesCount }}</span>
+        </button>
+        <span class="meta-item">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M1 4h14v9H1V4zm12 1H3v7h10V5z"/>
+            <circle cx="5" cy="3" r="1"/>
+            <circle cx="11" cy="3" r="1"/>
+          </svg>
+          {{ commentsCount || 0 }}
+        </span>
+      </div>
+    </div>
+    
+    <!-- 作者操作按钮 - 仅在个人中心显示 -->
+    <div v-if="isOwner" class="snippet-actions">
+      <button class="btn btn-sm btn-primary" @click.stop="$emit('edit')">
+        编辑
+      </button>
+      
+      <button class="btn btn-sm btn-danger" @click.stop="$emit('delete')">
+        删除
+      </button>
+      
+      <button 
+        class="btn btn-sm" 
+        :class="cssnippet.is_public ? 'btn-secondary' : 'btn-success'"
+        @click.stop="$emit('toggle-visibility')"
+      >
+        {{ cssnippet.is_public ? '公开' : '私密' }}
+      </button>
+    </div>
+    
+    <!-- 非作者查看按钮 -->
+    <div v-else class="snippet-actions">
+      <button class="btn btn-primary full-width" @click.stop="handleViewClick">
+        查看详情
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import CssPreview from './CssPreview.vue'
+
+const router = useRouter()
+
+// 定义组件属性
+const props = defineProps({
+  cssnippet: {
+    type: Object,
+    required: true
+  },
+  isOwner: {
+    type: Boolean,
+    default: false
+  },
+  showAuthor: {
+    type: Boolean,
+    default: true
+  },
+  showTags: {
+    type: Boolean,
+    default: true
+  },
+  maxTags: {
+    type: Number,
+    default: 3
+  },
+  maxDescriptionLength: {
+    type: Number,
+    default: 100
+  }
+})
+
+// 定义事件
+const emit = defineEmits(['click', 'view', 'edit', 'delete', 'toggle-visibility', 'like', 'favorite'])
+
+// 计算属性
+const truncateDescription = computed(() => {
+  if (!props.cssnippet.description) return ''
+  
+  const desc = props.cssnippet.description.trim()
+  if (desc.length <= props.maxDescriptionLength) return desc
+  
+  return desc.substring(0, props.maxDescriptionLength) + '...'
+})
+
+const avatarSrc = computed(() => {
+  return props.cssnippet.avatar || '/default-avatar.png'
+})
+
+const likesCount = computed(() => {
+  return props.cssnippet.likes_count || props.cssnippet.like_count || 0
+})
+
+const favoritesCount = computed(() => {
+  return props.cssnippet.favorite_count || props.cssnippet.collections_count || 0
+})
+
+const commentsCount = computed(() => {
+  return props.cssnippet.comments_count || 0
+})
+
+const isLiked = computed(() => {
+  return props.cssnippet.isLiked || false
+})
+
+const isFavorited = computed(() => {
+  return props.cssnippet.isCollected || false
+})
+
+const detailRoute = computed(() => {
+  return { name: 'CSSnippetDetail', params: { id: props.cssnippet.id } }
+})
+
+// 方法
+const handleClick = () => {
+  if (!props.isOwner) {
+    emit('click')
+    router.push(detailRoute.value)
+  }
+}
+
+const handleViewClick = () => {
+  emit('click')
+  router.push(detailRoute.value)
+}
+</script>
+
+<style scoped>
+.cssnippet-card {
+  width: 100%;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cssnippet-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cssnippet-preview {
+  width: 100%;
+  height: 150px;
+  background-color: #f9f9f9;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+.cssnippet-title {
+  margin: 5px 0 10px;
+  font-size: 18px;
+  color: #333;
+}
+
+.cssnippet-description {
+  margin-bottom: 10px;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cssnippet-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.tag {
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  text-decoration: none;
+}
+
+.tag-more {
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.cssnippet-info {
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar.small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.cssnippet-meta {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.meta-item:hover {
+  background-color: #f0f0f0;
+}
+
+.meta-item.active {
+  color: #3498db;
+}
+
+.snippet-actions {
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.snippet-actions .btn {
+  flex: 1;
+  max-width: 120px;
+  padding: 6px 10px;
+  text-align: center;
+}
+
+.btn {
+  /* 基础样式 */
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+  
+  /* 统一尺寸和布局 */
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* 重置a标签特有样式 */
+  text-decoration: none;
+  color: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+  line-height: 1;
+  white-space: nowrap;
+  
+  /* 确保一致的盒模型 */
+  box-sizing: border-box;
+}
+
+.btn-sm {
+  /* 基础样式 */
+  padding: 6px 10px;
+  font-size: 12px;
+  
+  /* 统一尺寸和布局 - 与普通按钮保持相同高度 */
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* 重置a标签特有样式 */
+  text-decoration: none;
+  color: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+  line-height: 1;
+  white-space: nowrap;
+  
+  /* 确保一致的盒模型 */
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #2980b9;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid #ddd;
+  color: #666;
+}
+
+.btn-outline:hover {
+  background-color: #f0f0f0;
+}
+
+.btn-danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c0392b;
+}
+
+.btn-secondary {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #7f8c8d;
+}
+
+.btn-success {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #27ae60;
+}
+
+.full-width {
+  width: 100%;
+}
+</style>

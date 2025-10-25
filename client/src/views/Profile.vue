@@ -103,50 +103,16 @@
           <div v-if="loading" class="loading">加载中...</div>
           
           <div v-else-if="mySnippets.length > 0" class="snippets-grid">
-            <div 
+            <SnippetCard 
               v-for="snippet in mySnippets" 
               :key="snippet.id"
-              class="snippet-card"
-            >
-              <CssPreview :cssnippet="snippet" class="snippet-preview" />
-              
-              <div class="snippet-info">
-                <h4 class="snippet-title">{{ snippet.title }}</h4>
-                
-                <p class="snippet-description">{{ snippet.description }}</p>
-                
-                <div class="snippet-meta">
-                  <span class="publish-date">{{ formatDate(snippet.created_at) }}</span>
-                  
-                  <div class="snippet-stats">
-                    <span class="stat-item">❤️ {{ snippet.like_count }}</span>
-                    <span class="stat-item">⭐ {{ snippet.favorite_count }}</span>
-                  </div>
-                </div>
-                
-                <div class="snippet-actions">
-                  <button class="btn btn-sm btn-outline" @click="goToDetail(snippet.id)">
-                    查看
-                  </button>
-                  
-                  <button class="btn btn-sm btn-primary" @click="editSnippet(snippet.id)">
-                    编辑
-                  </button>
-                  
-                  <button class="btn btn-sm btn-danger" @click="confirmDelete(snippet)">
-                    删除
-                  </button>
-                  
-                  <button 
-                    class="btn btn-sm" 
-                    :class="snippet.is_public ? 'btn-secondary' : 'btn-success'"
-                    @click="toggleVisibility(snippet)"
-                  >
-                    {{ snippet.is_public ? '公开' : '私密' }}
-                  </button>
-                </div>
-              </div>
-            </div>
+              :cssnippet="snippet"
+              :is-owner="true"
+              :show-author="false"
+              @edit="editSnippet(snippet.id)"
+              @delete="confirmDelete(snippet)"
+              @toggle-visibility="toggleVisibility(snippet)"
+            />
           </div>
           
           <div v-else class="empty-state">
@@ -187,43 +153,15 @@
           <div v-if="loading" class="loading">加载中...</div>
           
           <div v-else-if="likedSnippets.length > 0" class="snippets-grid">
-            <div 
+            <SnippetCard 
               v-for="snippet in likedSnippets" 
               :key="snippet.id"
-              class="snippet-card"
+              :cssnippet="snippet"
+              :is-owner="snippet.user_id === userStore.user?.id"
               @click="goToDetail(snippet.id)"
-            >
-              <CssPreview :cssnippet="snippet" class="snippet-preview" />
-              
-              <div class="snippet-info">
-                <h4 class="snippet-title">{{ snippet.title }}</h4>
-                
-                <div class="author-info">
-                  <img :src="getAvatar(snippet.user_id)" alt="作者头像" class="avatar">
-                  <span>{{ snippet.username }}</span>
-                </div>
-                
-                <div class="snippet-tags">
-                  <span 
-                    v-for="tag in (snippet.tags || []).slice(0, 3)" 
-                    :key="tag.id"
-                    class="tag"
-                  >
-                    {{ tag.name }}
-                  </span>
-                  <span v-if="snippet.tags && snippet.tags.length > 3" class="tag-more">+{{ snippet.tags.length - 3 }}</span>
-                </div>
-                
-                <div class="snippet-meta">
-                  <span class="publish-date">{{ formatDate(snippet.created_at) }}</span>
-                  
-                  <div class="snippet-stats">
-                    <span class="stat-item">❤️ {{ snippet.like_count }}</span>
-                    <span class="stat-item">⭐ {{ snippet.favorite_count }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              @like="() => toggleLike(snippet)"
+              @favorite="() => toggleFavorite(snippet)"
+            />
           </div>
           
           <div v-else class="empty-state">
@@ -264,43 +202,15 @@
           <div v-if="loading" class="loading">加载中...</div>
           
           <div v-else-if="favoritedSnippets.length > 0" class="snippets-grid">
-            <div 
+            <SnippetCard 
               v-for="snippet in favoritedSnippets" 
               :key="snippet.id"
-              class="snippet-card"
+              :cssnippet="snippet"
+              :is-owner="snippet.user_id === userStore.user?.id"
               @click="goToDetail(snippet.id)"
-            >
-              <CssPreview :cssnippet="snippet" class="snippet-preview" />
-              
-              <div class="snippet-info">
-                <h4 class="snippet-title">{{ snippet.title }}</h4>
-                
-                <div class="author-info">
-                  <img :src="getAvatar(snippet.user_id)" alt="作者头像" class="avatar">
-                  <span>{{ snippet.username }}</span>
-                </div>
-                
-                <div class="snippet-tags">
-                  <span 
-                    v-for="tag in (snippet.tags || []).slice(0, 3)" 
-                    :key="tag.id"
-                    class="tag"
-                  >
-                    {{ tag.name }}
-                  </span>
-                  <span v-if="snippet.tags && snippet.tags.length > 3" class="tag-more">+{{ snippet.tags.length - 3 }}</span>
-                </div>
-                
-                <div class="snippet-meta">
-                  <span class="publish-date">{{ formatDate(snippet.created_at) }}</span>
-                  
-                  <div class="snippet-stats">
-                    <span class="stat-item">❤️ {{ snippet.like_count }}</span>
-                    <span class="stat-item">⭐ {{ snippet.favorite_count }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              @like="() => toggleLike(snippet)"
+              @favorite="() => toggleFavorite(snippet)"
+            />
           </div>
           
           <div v-else class="empty-state">
@@ -534,13 +444,13 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { useCssnippetStore } from '../stores/cssnippet'
-import CssPreview from '../components/CssPreview.vue'
+import { useCSSnippetStore } from '../stores/cssnippet'
+import SnippetCard from '../components/SnippetCard.vue'
    import DeleteConfirm from '../components/DeleteConfirm.vue'
    
    const router = useRouter();
-   const userStore = useUserStore();
-   const cssnippetStore = useCssnippetStore();
+   const userStore = useUserStore()
+  const cssnippetStore = useCSSnippetStore();
     
     const activeTab = ref('my-snippets')
     const loading = ref(false)
@@ -988,9 +898,9 @@ import CssPreview from '../components/CssPreview.vue'
 /* 代码段网格 */
 .snippets-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 30px;
-  padding: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px;
 }
 
 .snippet-card {
@@ -1000,38 +910,45 @@ import CssPreview from '../components/CssPreview.vue'
   transition: all 0.3s;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
 }
 
 .snippet-card:hover {
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .snippet-preview {
-  height: 180px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
+  height: 150px;
+  background-color: #f9f9f9;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
 }
 
 .snippet-info {
-  padding: 20px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
+.snippet-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
 .snippet-title {
+  margin: 5px 0 10px;
   font-size: 18px;
-  margin-bottom: 10px;
   color: #333;
   line-height: 1.4;
 }
 
 .snippet-description {
-  font-size: 14px;
   color: #666;
+  font-size: 14px;
   margin-bottom: 15px;
   line-height: 1.5;
   flex: 1;

@@ -24,52 +24,14 @@
     </div>
     
     <div v-else class="cssnippet-grid">
-      <div v-for="cssnippet in currentList" :key="cssnippet.id" class="cssnippet-card card">
-        <CssPreview :cssnippet="cssnippet" class="cssnippet-preview" />
-        <h3 class="cssnippet-title">{{ cssnippet.title }}</h3>
-        <p class="cssnippet-description">{{ truncateText(cssnippet.description, 100) }}</p>
-        
-        <div class="cssnippet-tags">
-          <router-link 
-            v-for="tag in cssnippet.tags || []" 
-            :key="tag.id" 
-            :to="{ name: 'Tag', params: { name: tag.name } }"
-            class="tag"
-          >
-            {{ tag.name }}
-          </router-link>
-        </div>
-        
-        <div class="cssnippet-info">
-          <div class="author-info">
-            <img :src="cssnippet.avatar || '/default-avatar.png'" :alt="cssnippet.username" class="avatar small">
-            <span>{{ cssnippet.username }}</span>
-          </div>
-          
-          <div class="cssnippet-meta">
-            <button class="meta-item btn-icon" @click="toggleLike($event, cssnippet)" :class="{ 'active': cssnippet.isLiked }">
-              <span class="icon">{{ cssnippet.isLiked ? '❤️' : '🤍' }}</span>
-              <span>{{ cssnippet.likes_count || 0 }}</span>
-            </button>
-            <button class="meta-item btn-icon" @click="toggleFavorite($event, cssnippet)" :class="{ 'active': cssnippet.isCollected }">
-              <span class="icon">{{ cssnippet.isCollected ? '⭐' : '☆' }}</span>
-              <span>{{ cssnippet.favorite_count || cssnippet.collections_count || 0 }}</span>
-            </button>
-            <span class="meta-item">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M1 4h14v9H1V4zm12 1H3v7h10V5z"/>
-                <circle cx="5" cy="3" r="1"/>
-                <circle cx="11" cy="3" r="1"/>
-              </svg>
-              {{ cssnippet.comments_count || 0 }}
-            </span>
-          </div>
-        </div>
-        
-        <router-link :to="{ name: 'CSSnippetDetail', params: { id: cssnippet.id } }" class="btn btn-primary full-width">
-          查看详情
-        </router-link>
-      </div>
+      <SnippetCard 
+        v-for="cssnippet in currentList" 
+        :key="cssnippet.id"
+        :cssnippet="cssnippet"
+        :is-owner="cssnippet.user_id === userStore.user?.id"
+        @like="toggleLike($event, cssnippet)"
+        @favorite="toggleFavorite($event, cssnippet)"
+      />
     </div>
     
     <div v-if="!loading && currentList.length > 0" class="pagination">
@@ -108,10 +70,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useCSSnippetStore } from '../stores/cssnippet'
-import { useUserStore } from '../stores/user'
 import { useRouter } from 'vue-router'
-import CssPreview from '../components/CssPreview.vue'
+import { useUserStore } from '../stores/user'
+import { useCSSnippetStore } from '../stores/cssnippet'
+import SnippetCard from '../components/SnippetCard.vue'
 
 // 组件状态和逻辑
 const cssnippetStore = useCSSnippetStore()

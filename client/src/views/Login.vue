@@ -101,73 +101,68 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 
-export default {
-  name: 'Login',
-  setup() {
-    const router = useRouter()
-    const userStore = useUserStore()
+const router = useRouter()
+const userStore = useUserStore()
+
+const form = ref({
+  email: '',
+  password: '',
+  remember: false
+})
+
+const resetForm = ref({
+  email: ''
+})
+
+const loading = ref(false)
+const error = ref('')
+const showForgotPassword = ref(false)
+const resetLoading = ref(false)
+const resetError = ref('')
+const resetSuccess = ref('')
+
+const handleSubmit = async () => {
+  error.value = ''
+  
+  try {
+    loading.value = true
+    await userStore.login(form.value.email, form.value.password, form.value.remember)
+    router.push('/')
+  } catch (err) {
+    error.value = userStore.error || '登录失败，请检查邮箱和密码'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handlePasswordReset = async () => {
+  resetError.value = ''
+  resetSuccess.value = ''
+  
+  try {
+    resetLoading.value = true
+    // 这里可以添加密码重置的API调用
+    // await axios.post('/api/auth/reset-password', { email: resetForm.value.email })
     
-    const form = ref({
-      email: '',
-      password: '',
-      remember: false
-    })
+    resetSuccess.value = '密码重置链接已发送到您的邮箱'
     
-    const resetForm = ref({
-      email: ''
-    })
-    
-    const loading = ref(false)
-    const error = ref('')
-    const showForgotPassword = ref(false)
-    const resetLoading = ref(false)
-    const resetError = ref('')
-    const resetSuccess = ref('')
-    
-    const handleSubmit = async () => {
-      error.value = ''
-      
-      try {
-        loading.value = true
-        await userStore.login(form.value.email, form.value.password, form.value.remember)
-        router.push('/')
-      } catch (err) {
-        error.value = userStore.error || '登录失败，请检查邮箱和密码'
-      } finally {
-        loading.value = false
-      }
-    }
-    
-    const handlePasswordReset = async () => {
-      resetError.value = ''
-      resetSuccess.value = ''
-      
-      try {
-        resetLoading.value = true
-        // 这里可以添加密码重置的API调用
-        // await axios.post('/api/auth/reset-password', { email: resetForm.value.email })
-        
-        resetSuccess.value = '密码重置链接已发送到您的邮箱'
-        
-        // 3秒后关闭弹窗
-        setTimeout(() => {
-          closeForgotPassword()
-        }, 3000)
-      } catch (err) {
-        resetError.value = '发送失败，请稍后重试'
-      } finally {
-        resetLoading.value = false
-      }
-    }
-    
-    const closeForgotPassword = () => {
-      showForgotPassword.value = false
-      resetForm.value.email = ''
-      resetError.value = ''
-      resetSuccess.value = ''
-    }
-    
-// 所有变量和函数自动暴露给模板
+    // 3秒后关闭弹窗
+    setTimeout(() => {
+      closeForgotPassword()
+    }, 3000)
+  } catch (err) {
+    resetError.value = '发送失败，请稍后重试'
+  } finally {
+    resetLoading.value = false
+  }
+}
+
+const closeForgotPassword = () => {
+  showForgotPassword.value = false
+  resetForm.value.email = ''
+  resetError.value = ''
+  resetSuccess.value = ''
+}
 </script>
 
 <style scoped>
