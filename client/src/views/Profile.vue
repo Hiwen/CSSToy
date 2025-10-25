@@ -783,7 +783,7 @@
     }
     
     const editSnippet = (id) => {
-      router.push(`/edit/${id}`)
+  router.push(`/cssnippet/${id}/edit`)
     }
     
     const getPreviewStyle = (cssCode) => {

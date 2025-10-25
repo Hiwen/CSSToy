@@ -390,7 +390,7 @@ const editCode = (event) => {
     event.stopPropagation()
     event.preventDefault()
   }
-  router.push(`/edit/${cssnippet.value.id}`)
+  router.push(`/cssnippet/${cssnippet.value.id}/edit`)
 }
 
 const confirmDelete = (event) => {
