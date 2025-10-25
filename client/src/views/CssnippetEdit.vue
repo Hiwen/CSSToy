@@ -125,7 +125,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
 import { useUserStore } from '../stores/user'
@@ -157,6 +157,14 @@ export default {
     // 监听CSS代码变化，确保预览同步更新
     watch(() => form.cssCode, () => {
       updatePreview()
+    })
+    
+    // 组件卸载时清理样式元素
+    onUnmounted(() => {
+      const styleElement = document.getElementById('edit-preview-style');
+      if (styleElement) {
+        styleElement.remove();
+      }
     })
     
     const isEditMode = computed(() => {
@@ -289,18 +297,33 @@ export default {
         // 清除之前的错误样式
         previewStyles.value = {}
         
-        // 直接通过DOM引用设置样式，这是最可靠的方法
+        // 移除之前的样式元素
+        const existingStyle = document.getElementById('edit-preview-style');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+        
+        // 直接通过DOM引用设置内容
         if (previewRef.value) {
           // 更新HTML内容
           if (form.htmlCode.trim()) {
             previewRef.value.innerHTML = form.htmlCode.trim()
           } else {
-            previewRef.value.innerHTML = 'CSS 预览效果'
+            // 提供默认HTML片段，让CSS样式有更好的预览效果
+            previewRef.value.innerHTML = '<div class="demo-container">\n  <h3>CSS预览</h3>\n  <p>这是一个默认的预览内容</p>\n  <div class="demo-box">示例元素</div>\n  <button class="demo-button">测试按钮</button>\n</div>'
           }
           
           // 使用try-catch确保即使CSS语法错误也不会阻塞功能
           try {
-            previewRef.value.style.cssText = form.cssCode
+            // 创建新的样式元素，让CSS类选择器能够正常工作
+            const styleElement = document.createElement('style');
+            styleElement.id = 'edit-preview-style';
+            // 限制样式只应用于预览区域
+            styleElement.textContent = `#preview-element,
+#preview-element * {
+${form.cssCode}
+}`;
+            document.head.appendChild(styleElement);
           } catch (cssError) {
             console.warn('CSS语法错误:', cssError)
             // 如果CSS语法错误，设置错误提示样式

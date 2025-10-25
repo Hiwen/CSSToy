@@ -236,7 +236,8 @@ const isOwner = computed(() => {
 
 const previewHtml = computed(() => {
   if (!cssnippet.value || !cssnippet.value.html_content) {
-    return 'CSS 预览效果';
+    // 提供默认HTML片段，让CSS样式有更好的预览效果
+    return '<div class="demo-box">示例元素</div>';
   }
   return cssnippet.value.html_content;
 })
@@ -250,13 +251,16 @@ watch(() => cssnippet.value?.css_content, (newCss) => {
   }
   
   // 创建新的样式元素
-  if (newCss) {
-    const styleElement = document.createElement('style');
-    styleElement.id = 'preview-inline-style';
-    // 使用CSS选择器限制样式只应用于预览区域
-    styleElement.textContent = `.preview-element * {\n${newCss}\n}`;
-    document.head.appendChild(styleElement);
-  }
+    if (newCss) {
+      const styleElement = document.createElement('style');
+      styleElement.id = 'preview-inline-style';
+      // 使用CSS选择器限制样式只应用于预览区域，同时应用到预览元素本身及其子元素
+      styleElement.textContent = `.preview-element,
+.preview-element * {
+${newCss}
+}`;
+      document.head.appendChild(styleElement);
+    }
 }, { immediate: true })
 
 // 组件卸载时清理样式
