@@ -25,24 +25,24 @@
 
         <div class="action-buttons">
           <button class="btn btn-outline" @click.stop="toggleLike($event)" :class="{ 'active': cssnippet.isLiked }">
-              <span class="icon">{{ cssnippet.isLiked ? '❤️' : '🤍' }}</span>
-              <span>{{ cssnippet.likes_count }}</span>
-            </button>
+            <span class="icon">{{ cssnippet.isLiked ? '❤️' : '🤍' }}</span>
+            <span>{{ cssnippet.likes_count }}</span>
+          </button>
 
           <button class="btn btn-outline" @click.stop="toggleFavorite($event)" :class="{ 'active': cssnippet.isCollected }">
-              <span class="icon">{{ cssnippet.isCollected ? '⭐' : '☆' }}</span>
-              <span>{{ cssnippet.favorite_count || cssnippet.collections_count }}</span>
-            </button>
+            <span class="icon">{{ cssnippet.isCollected ? '⭐' : '☆' }}</span>
+            <span>{{ cssnippet.favorite_count || cssnippet.collections_count }}</span>
+          </button>
 
           <button class="btn btn-outline" @click.stop="copyCode($event)">
-              <span class="icon">📋</span>
-              <span>{{ copySuccess ? '已复制' : '复制代码' }}</span>
-            </button>
+            <span class="icon">📋</span>
+            <span>{{ copySuccess ? '已复制' : '复制代码' }}</span>
+          </button>
 
           <button class="btn btn-outline" @click.stop="shareCode($event)">
-              <span class="icon">🔗</span>
-              <span>分享</span>
-            </button>
+            <span class="icon">🔗</span>
+            <span>分享</span>
+          </button>
 
           <template v-if="isOwner">
             <button class="btn btn-primary" @click.stop="editCode($event)">
@@ -58,22 +58,28 @@
         </div>
       </div>
 
-      <!-- 代码和预览区域 -->
+      <!-- 实时预览 -->
+      <div class="preview-section-wrapper">
+        <div class="preview-section">
+          <h3>实时预览</h3>
+          <div class="preview-box">
+            <div class="preview-element" v-html="previewHtml"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 代码区域 -->
       <div class="code-preview-container">
         <div class="code-section">
           <h3>CSS 代码</h3>
           <pre><code class="language-css">{{ cssnippet.css_content }}</code></pre>
         </div>
 
-        <div class="preview-section">
-          <h3>实时预览</h3>
-          <div class="preview-box">
-            <div class="preview-element" :style="cssCodeStyles" v-html="previewHtml"></div>
-          </div>
+        <div class="code-section">
+          <h3>HTML 代码</h3>
+          <pre><code class="language-html">{{ cssnippet.html_content || '无HTML内容' }}</code></pre>
         </div>
       </div>
-
-      <!-- HTML模板功能已移至编辑页面 -->
 
       <!-- 评论区域 -->
       <div class="comments-section">
@@ -151,7 +157,9 @@
                 </div>
 
                 <div class="comment-content">
-                  <a href="#" class="link">@{{ getUsernameById(child.parent_user_id) }}</a>
+                  <span>
+                    <a href="#" class="link">@{{ getUsernameById(child.parent_user_id) }}</a>
+                  </span>
                   {{ child.content }}
                 </div>
               </div>
@@ -161,16 +169,18 @@
       </div>
 
       <!-- 相关推荐 -->
-      <div class="related-section" v-if="relatedSnippets.length > 0">
+      <div class="related-section">
         <h3>相关推荐</h3>
-        <div class="related-snippets">
-          <div v-for="snippet in relatedSnippets" :key="snippet.id" class="related-snippet-item"
-            @click="goToDetail(snippet.id)">
-            <div class="related-snippet-title">{{ snippet.title }}</div>
-            <div class="related-snippet-meta">
-              <span>{{ snippet.username }}</span>
-              <span>❤️ {{ snippet.likes_count }}</span>
-            </div>
+        <div class="related-list">
+          <div v-for="snippet in relatedSnippets" :key="snippet.id" class="related-item">
+            <router-link :to="`/detail/${snippet.id}`" class="related-link">
+              <h4>{{ snippet.title }}</h4>
+              <p class="related-author">{{ snippet.username }}</p>
+              <div class="related-stats">
+                <span>{{ snippet.likes_count }} 喜欢</span>
+                <span>{{ snippet.view_count }} 浏览</span>
+              </div>
+            </router-link>
           </div>
         </div>
       </div>
@@ -192,7 +202,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
 import { useUserStore } from '../stores/user'
@@ -203,387 +213,333 @@ const router = useRouter()
 const cssnippetStore = useCssnippetStore()
 const userStore = useUserStore()
 
-    const cssnippet = ref(null)
-    const loading = ref(true)
-    const comments = ref([])
-    const deletingCommentId = ref(null)
-    const relatedSnippets = ref([])
-    const copySuccess = ref(false)
-    const showDeleteConfirm = ref(false)
-    const deleteLoading = ref(false)
+// 状态
+const loading = ref(false)
+const cssnippet = ref(null)
+const comments = ref([])
+const relatedSnippets = ref([])
+const showDeleteConfirm = ref(false)
+const deleteLoading = ref(false)
+const deletingCommentId = ref(null)
+const copySuccess = ref(false)
 
-    // 评论相关
-    const newComment = ref({ content: '' })
-    const replyingTo = ref(null)
-    const replyContent = ref('')
+// 评论相关
+const newComment = ref({ content: '' })
+const replyingTo = ref(null)
+const replyContent = ref('')
 
-    // 计算属性
-    const isOwner = computed(() => {
-      if (!cssnippet.value || !userStore.user) return false
-      return cssnippet.value.user_id === userStore.user.id
+// 计算属性
+const isOwner = computed(() => {
+  if (!cssnippet.value || !userStore.user) return false
+  return cssnippet.value.user_id === userStore.user.id
+})
+
+const previewHtml = computed(() => {
+  if (!cssnippet.value || !cssnippet.value.html_content) {
+    return 'CSS 预览效果';
+  }
+  return cssnippet.value.html_content;
+})
+
+// 动态应用CSS样式到预览区域
+watch(() => cssnippet.value?.css_content, (newCss) => {
+  // 移除之前的样式
+  const existingStyle = document.getElementById('preview-inline-style');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  // 创建新的样式元素
+  if (newCss) {
+    const styleElement = document.createElement('style');
+    styleElement.id = 'preview-inline-style';
+    // 使用CSS选择器限制样式只应用于预览区域
+    styleElement.textContent = `.preview-element * {\n${newCss}\n}`;
+    document.head.appendChild(styleElement);
+  }
+}, { immediate: true })
+
+// 组件卸载时清理样式
+const cleanupStyle = () => {
+  const existingStyle = document.getElementById('preview-inline-style');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+}
+
+// 页面切换时清理样式
+window.addEventListener('beforeunload', cleanupStyle);
+
+// 组件销毁时清理
+import('vue').then(({ onUnmounted }) => {
+  onUnmounted(() => {
+    cleanupStyle();
+    window.removeEventListener('beforeunload', cleanupStyle);
+  });
+})
+
+// 方法
+onMounted(() => {
+  loadCssnippetDetail()
+})
+
+const loadCssnippetDetail = async () => {
+  const id = route.params.id
+  try {
+    loading.value = true
+    const data = await cssnippetStore.getCssnippetDetail(id)
+    cssnippet.value = data
+    // 加载评论数据
+    comments.value = await cssnippetStore.fetchComments(id)
+    relatedSnippets.value = []
+  } catch (err) {
+    console.error('Failed to load cssnippet detail:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+const toggleLike = async (event) => {
+  // 确保事件被完全阻止
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+  
+  try {
+    if (cssnippet.value.isLiked) {
+      await cssnippetStore.unlike(cssnippet.value.id)
+      cssnippet.value.likes_count--
+    } else {
+      await cssnippetStore.like(cssnippet.value.id)
+      cssnippet.value.likes_count++
+    }
+    cssnippet.value.isLiked = !cssnippet.value.isLiked
+  } catch (err) {
+    console.error('Toggle like failed:', err)
+  }
+}
+
+const toggleFavorite = async (event) => {
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+  
+  try {
+    if (cssnippet.value.isCollected) {
+      await cssnippetStore.removeCollection(cssnippet.value.id)
+      cssnippet.value.collections_count--
+    } else {
+      await cssnippetStore.addCollection(cssnippet.value.id)
+      cssnippet.value.collections_count++
+    }
+    cssnippet.value.isCollected = !cssnippet.value.isCollected
+  } catch (err) {
+    console.error('Toggle favorite failed:', err)
+  }
+}
+
+const copyCode = async (event) => {
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  
+  try {
+    await navigator.clipboard.writeText(cssnippet.value.css_content)
+    copySuccess.value = true
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Copy code failed:', err)
+  }
+}
+
+const shareCode = async (event) => {
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  
+  const url = window.location.href
+  try {
+    await navigator.clipboard.writeText(url)
+    copySuccess.value = true
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Share code failed:', err)
+  }
+}
+
+const editCode = (event) => {
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  router.push(`/edit/${cssnippet.value.id}`)
+}
+
+const confirmDelete = (event) => {
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  showDeleteConfirm.value = true
+}
+
+const handleCancelDelete = () => {
+  showDeleteConfirm.value = false
+  deletingCommentId.value = null
+}
+
+const confirmDeleteAction = async () => {
+  try {
+    deleteLoading.value = true
+    if (deletingCommentId.value) {
+      await cssnippetStore.deleteComment(deletingCommentId.value)
+      // 从评论列表中移除
+      comments.value = comments.value.filter(comment => comment.id !== deletingCommentId.value)
+    } else {
+      await cssnippetStore.delete(cssnippet.value.id)
+      router.push('/')
+      return
+    }
+    showDeleteConfirm.value = false
+    deletingCommentId.value = null
+  } catch (err) {
+    console.error('Delete failed:', err)
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
+const submitComment = async () => {
+  if (!newComment.value.content.trim()) return
+  
+  try {
+    const comment = await cssnippetStore.addComment({
+      cssnippet_id: cssnippet.value.id,
+      content: newComment.value.content
     })
+    comments.value.unshift(comment)
+    newComment.value.content = ''
+  } catch (err) {
+    console.error('Submit comment failed:', err)
+  }
+}
 
-    const cssCodeStyles = computed(() => {
-      if (!cssnippet.value) {
-        return "";
-      }
+const replyToComment = (comment) => {
+  replyingTo.value = comment.id
+  replyContent.value = ''
+  nextTick(() => {
+    const textarea = document.querySelector(`.reply-form textarea`)
+    if (textarea) textarea.focus()
+  })
+}
 
-      return cssnippet.value.css_content;
+const cancelReply = () => {
+  replyingTo.value = null
+  replyContent.value = ''
+}
+
+const submitReply = async (parentId) => {
+  if (!replyContent.value.trim()) return
+  
+  try {
+    const reply = await cssnippetStore.addComment({
+      cssnippet_id: cssnippet.value.id,
+      content: replyContent.value,
+      parent_id: parentId
     })
     
-    const previewHtml = computed(() => {
-      if (!cssnippet.value || !cssnippet.value.html_content) {
-        return 'CSS 预览效果';
-      }
-      return cssnippet.value.html_content;
-    })
-
-    // 方法
-    const loadCssnippetDetail = async () => {
-      const id = route.params.id
-      try {
-        loading.value = true
-        const data = await cssnippetStore.getCssnippetDetail(id)
-        cssnippet.value = data
-        // 加载评论数据
-        comments.value = await cssnippetStore.fetchComments(id)
-        relatedSnippets.value = []
-      } catch (err) {
-        console.error('Failed to load cssnippet detail:', err)
-      } finally {
-        loading.value = false
-      }
+    // 将回复添加到父评论的children数组中
+    const parentComment = comments.value.find(comment => comment.id === parentId)
+    if (parentComment) {
+      if (!parentComment.children) parentComment.children = []
+      parentComment.children.push(reply)
     }
+    
+    replyingTo.value = null
+    replyContent.value = ''
+  } catch (err) {
+    console.error('Submit reply failed:', err)
+  }
+}
 
-    const toggleLike = async (event) => {
-      // 确保事件被完全阻止
-      if (event) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-      
-      console.log('Toggle like clicked')
-      
-      if (!userStore.isLoggedIn) {
-        console.log('Not logged in, redirecting to login page')
-        // 保存当前页面，以便登录后返回
-        localStorage.setItem('redirectAfterLogin', window.location.pathname)
-        router.push({
-          name: 'Login'
-        })
-        return
-      }
+const deleteComment = (commentId, event) => {
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  deletingCommentId.value = commentId
+  showDeleteConfirm.value = true
+}
 
-      try {
-        console.log('Calling cssnippetStore.toggleLike')
-        // 使用store返回的结果直接更新本地状态
-        const newLikeStatus = await cssnippetStore.toggleLike(cssnippet.value.id)
-        console.log('Toggle like result:', newLikeStatus)
-        
-        // 直接使用新状态更新UI
-        cssnippet.value.isLiked = newLikeStatus
-        // 计数已在store中更新，无需在这里再次更新
-      } catch (err) {
-        console.error('Failed to toggle like:', err)
-        // 出错时可以选择刷新整个数据
-        try {
-          const refreshedData = await cssnippetStore.fetchById(cssnippet.value.id)
-          cssnippet.value = { ...refreshedData }
-        } catch (refreshErr) {
-          console.error('Failed to refresh data:', refreshErr)
-        }
-      }
-    }
+const isCommentOwner = (comment) => {
+  return userStore.user && userStore.user.id === comment.user_id
+}
 
-    const toggleFavorite = async (event) => {
-      // 确保事件被完全阻止
-      if (event) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-      
-      console.log('Toggle favorite clicked')
-      
-      if (!userStore.isLoggedIn) {
-        console.log('Not logged in, redirecting to login page')
-        // 保存当前页面，以便登录后返回
-        localStorage.setItem('redirectAfterLogin', window.location.pathname)
-        router.push({
-          name: 'Login'
-        })
-        return
-      }
+const handleTagClick = (tagName, event) => {
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  router.push(`/search?tag=${encodeURIComponent(tagName)}`)
+}
 
-      try {
-        console.log('Calling cssnippetStore.toggleCollect')
-        // 使用store返回的结果直接更新本地状态
-        const newCollectStatus = await cssnippetStore.toggleCollect(cssnippet.value.id)
-        console.log('Toggle favorite result:', newCollectStatus)
-        
-        // 直接使用新状态更新UI
-        cssnippet.value.isCollected = newCollectStatus
-        // 计数已在store中更新，无需在这里再次更新
-      } catch (err) {
-        console.error('Failed to toggle favorite:', err)
-        // 出错时可以选择刷新整个数据
-        try {
-          const refreshedData = await cssnippetStore.fetchById(cssnippet.value.id)
-          cssnippet.value = { ...refreshedData }
-        } catch (refreshErr) {
-          console.error('Failed to refresh data:', refreshErr)
-        }
-      }
-    }
+const getAvatar = (userId) => {
+  // 简单的头像生成逻辑，实际项目中可能需要调用API或使用更复杂的算法
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId || 'default'}`
+}
 
-    const copyCode = async (event) => {
-      // 确保事件被完全阻止
-      if (event) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-      
-      console.log('Copy code clicked')
-      
-      try {
-        console.log('Copying code to clipboard')
-        await navigator.clipboard.writeText(cssnippet.value.css_content)
-        copySuccess.value = true
-        setTimeout(() => {
-          copySuccess.value = false
-        }, 2000)
-      } catch (err) {
-        console.error('Failed to copy code:', err)
-      }
-    }
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diff = now - date
+  
+  // 小于1分钟
+  if (diff < 60 * 1000) return '刚刚'
+  
+  // 小于1小时
+  if (diff < 60 * 60 * 1000) {
+    const minutes = Math.floor(diff / (60 * 1000))
+    return `${minutes}分钟前`
+  }
+  
+  // 小于24小时
+  if (diff < 24 * 60 * 60 * 1000) {
+    const hours = Math.floor(diff / (60 * 60 * 1000))
+    return `${hours}小时前`
+  }
+  
+  // 小于30天
+  if (diff < 30 * 24 * 60 * 60 * 1000) {
+    const days = Math.floor(diff / (24 * 60 * 60 * 1000))
+    return `${days}天前`
+  }
+  
+  // 格式化日期
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
 
-    const shareCode = (event) => {
-      // 确保事件被完全阻止
-      if (event) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-      
-      console.log('Share code clicked')
-      const url = window.location.href
-      // 这里可以实现分享功能，比如使用 Web Share API
-      alert(`分享链接：${url}`)
-    }
-
-    const editCode = (event) => {
-      // 确保事件被完全阻止
-      if (event) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-      
-      console.log('Edit code clicked')
-      router.push(`/cssnippet/${cssnippet.value.id}/edit`)
-    }
-
-    const confirmDelete = (event) => {
-      // 确保事件被完全阻止
-      if (event) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-      
-      console.log('Confirm delete clicked')
-      deletingCommentId.value = null // 确保这是删除代码段，不是评论
-      showDeleteConfirm.value = true
-    }
-
-    const deleteCode = async () => {
-      console.log('Delete code executing')
-      
-      try {
-        console.log('Calling cssnippetStore.deleteCssnippet')
-        const result = await cssnippetStore.deleteCssnippet(cssnippet.value.id)
-        console.log('Delete result:', result)
-        // 删除成功后重定向到首页
-        router.push('/')
-      } catch (err) {
-        console.error('Failed to delete code:', err)
-        alert('删除失败，请重试')
-      }
-    }
-
-    const handleCancelDelete = () => {
-      showDeleteConfirm.value = false
-      deletingCommentId.value = null
-      deleteLoading.value = false
-    }
-
-    const confirmDeleteAction = async () => {
-      deleteLoading.value = true
-      try {
-        if (deletingCommentId.value) {
-          // 删除评论
-          await cssnippetStore.deleteComment(deletingCommentId.value)
-          // 从评论树中移除
-          const removeComment = (commentsList) => {
-            for (let i = 0; i < commentsList.length; i++) {
-              if (commentsList[i].id === deletingCommentId.value) {
-                commentsList.splice(i, 1)
-                return true
-              }
-              if (commentsList[i].children && removeComment(commentsList[i].children)) {
-                return true
-              }
-            }
-            return false
-          }
-          removeComment(comments.value)
-        } else {
-          // 删除代码段
-          await deleteCode()
-        }
-      } catch (err) {
-        console.error('Failed to delete:', err)
-        alert('删除失败，请重试')
-      } finally {
-        showDeleteConfirm.value = false
-        deletingCommentId.value = null
-        deleteLoading.value = false
-      }
-    }
-
-
-
-    const submitComment = async () => {
-      if (!newComment.value.content.trim()) return
-
-      try {
-        const comment = await cssnippetStore.addComment({
-          cssnippet_id: cssnippet.value.id,
-          content: newComment.value.content
-        })
-        comments.value.unshift(comment)
-        newComment.value.content = ''
-      } catch (err) {
-        console.error('Failed to submit comment:', err)
-      }
-    }
-
-    const replyToComment = (comment) => {
-      replyingTo.value = comment.id
-      replyContent.value = ''
-    }
-
-    const submitReply = async (parentId) => {
-      if (!replyContent.value.trim()) return
-
-      try {
-        const reply = await cssnippetStore.addComment({
-          cssnippet_id: cssnippet.value.id,
-          parent_id: parentId,
-          content: replyContent.value
-        })
-
-        // 更新评论树
-        const findAndAddReply = (commentsList) => {
-          for (let comment of commentsList) {
-            if (comment.id === parentId) {
-              if (!comment.children) comment.children = []
-              comment.children.push(reply)
-              return true
-            }
-            if (comment.children && findAndAddReply(comment.children)) {
-              return true
-            }
-          }
-          return false
-        }
-
-        findAndAddReply(comments.value)
-        cancelReply()
-      } catch (err) {
-        console.error('Failed to submit reply:', err)
-      }
-    }
-
-    const cancelReply = () => {
-      replyingTo.value = null
-      replyContent.value = ''
-    }
-
-    const deleteComment = (commentId, event) => {
-      // 确保事件被完全阻止
-      if (event) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-      
-      console.log('Delete comment clicked for comment ID:', commentId)
-      
-      // 使用setTimeout确保状态更新能正确触发
-      setTimeout(() => {
-        console.log('Setting deletingCommentId and showDeleteConfirm')
-        deletingCommentId.value = commentId
-        showDeleteConfirm.value = true
-        
-        console.log('Values set - showDeleteConfirm:', showDeleteConfirm.value)
-      }, 0)
-    }
-
-    const isCommentOwner = (comment) => {
-      if (!userStore.user) return false
-      return comment.user_id === userStore.user.id
-    }
-
-    const handleTagClick = (tagName, event) => {
-      // 确保事件被完全阻止
-      if (event) {
-        event.stopPropagation()
-        event.preventDefault()
-      }
-      
-      console.log('Tag clicked:', tagName)
-      router.push(`/search?q=${encodeURIComponent(tagName)}&type=tag`)
-    }
-
-    const goToDetail = (id) => {
-      router.push(`/cssnippet/${id}`)
-    }
-
-    const getAvatar = (userId) => {
-      // 简单的头像生成逻辑，实际项目中可能需要根据用户信息获取真实头像
-      return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
-    }
-
-    const formatDate = (dateString) => {
-      const date = new Date(dateString)
-      return new Intl.DateTimeFormat('zh-CN', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(date)
-    }
-
-    const getUsernameById = (userId) => {
-      // 这里可以从已加载的评论中查找用户名，或者维护一个用户ID到用户名的映射
-      const findUser = (commentsList) => {
-        for (const comment of commentsList) {
-          if (comment.user_id === userId) {
-            return comment.username
-          }
-          if (comment.children) {
-            const result = findUser(comment.children)
-            if (result) return result
-          }
-        }
-        return ''
-      }
-      return findUser(comments.value) || '用户'
-    }
-
-    // 组件挂载时加载数据
-    onMounted(() => {
-      loadCssnippetDetail()
-    })
-
-
+const getUsernameById = (userId) => {
+  // 这里应该从用户数据中获取用户名，暂时返回占位符
+  return '用户'
+}
 </script>
 
 <style scoped>
@@ -591,25 +547,20 @@ const userStore = useUserStore()
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
 }
 
-.loading {
+.loading, .not-found {
   text-align: center;
-  padding: 40px;
-  font-size: 18px;
-}
-
-.not-found {
-  text-align: center;
-  padding: 40px;
-  font-size: 18px;
-  color: #777;
+  padding: 50px;
+  color: #666;
 }
 
 .content-wrapper {
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -620,9 +571,9 @@ const userStore = useUserStore()
 }
 
 .detail-header h1 {
-  font-size: 28px;
-  margin-bottom: 20px;
+  margin: 0 0 20px 0;
   color: #333;
+  font-size: 28px;
 }
 
 .author-info {
@@ -635,7 +586,8 @@ const userStore = useUserStore()
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  margin-right: 10px;
+  margin-right: 12px;
+  object-fit: cover;
 }
 
 .author-details {
@@ -644,13 +596,14 @@ const userStore = useUserStore()
 }
 
 .author-name {
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
+  margin-bottom: 4px;
 }
 
 .publish-date {
   font-size: 14px;
-  color: #777;
+  color: #999;
 }
 
 .tags-container {
@@ -709,6 +662,40 @@ const userStore = useUserStore()
   color: #2196f3;
 }
 
+.btn-primary {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: #1976d2;
+}
+
+.btn-danger {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.3s;
+}
+
+.btn-danger:hover {
+  background-color: #d32f2f;
+}
+
 /* 代码和预览区域 */
 .code-preview-container {
   display: grid;
@@ -717,10 +704,18 @@ const userStore = useUserStore()
   padding: 30px;
 }
 
+.preview-section-wrapper {
+  padding: 0 30px 30px;
+  position: relative;
+  z-index: 1;
+}
+
 .code-section,
 .preview-section {
   border-radius: 8px;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .code-section h3,
@@ -752,55 +747,16 @@ const userStore = useUserStore()
   justify-content: center;
   background-color: #fafafa;
   border-radius: 8px;
+  position: relative;
+  overflow: hidden;
 }
 
 .preview-element {
   background-color: white;
   min-width: 100px;
   min-height: 50px;
-}
-
-/* HTML 模板选择 */
-.html-template-section {
-  padding: 30px;
-  border-top: 1px solid #eee;
-}
-
-.html-template-section h3 {
-  margin-bottom: 20px;
-  color: #333;
-}
-
-.templates-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 15px;
-}
-
-.template-item {
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.template-item:hover {
-  border-color: #3498db;
-}
-
-.template-item.active {
-  border-color: #3498db;
-  background-color: #e3f2fd;
-}
-
-.template-preview {
-  margin-bottom: 10px;
-  min-height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  z-index: 1;
 }
 
 /* 评论区域 */
@@ -814,32 +770,69 @@ const userStore = useUserStore()
   color: #333;
 }
 
+.comment-form {
+  margin-bottom: 30px;
+}
+
 .comment-form textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: vertical;
-  margin-bottom: 10px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.comment-form button {
+  margin-top: 10px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.comment-form button:hover:not(:disabled) {
+  background-color: #1976d2;
+}
+
+.comment-form button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 .login-prompt {
-  padding: 20px;
-  text-align: center;
-  color: #777;
+  margin-bottom: 30px;
+  color: #666;
+}
+
+.login-prompt .link {
+  color: #2196f3;
+  text-decoration: none;
+}
+
+.login-prompt .link:hover {
+  text-decoration: underline;
 }
 
 .comments-list {
-  margin-top: 30px;
+  space-y: 20px;
 }
 
 .comment-item {
-  padding: 15px 0;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
 }
 
 .comment-item.child {
-  padding-left: 40px;
+  margin-left: 40px;
+  padding: 15px;
+  background-color: #f5f5f5;
 }
 
 .comment-header {
@@ -849,12 +842,11 @@ const userStore = useUserStore()
 }
 
 .comment-info {
-  margin-right: auto;
-  margin-left: 10px;
+  flex: 1;
 }
 
 .comment-author {
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
   margin-right: 10px;
 }
@@ -872,29 +864,37 @@ const userStore = useUserStore()
 .btn-sm {
   padding: 4px 8px;
   font-size: 12px;
-  background: none;
   border: none;
+  background: none;
+  color: #666;
   cursor: pointer;
-  color: #777;
+  transition: all 0.3s;
 }
 
 .btn-sm:hover {
-  color: #3498db;
+  color: #333;
+}
+
+.text-danger {
+  color: #f44336;
 }
 
 .comment-content {
-  margin-left: 50px;
   line-height: 1.6;
   color: #333;
 }
 
+.comment-content .link {
+  color: #2196f3;
+  text-decoration: none;
+}
+
+.comment-content .link:hover {
+  text-decoration: underline;
+}
+
 .reply-form {
-  margin-left: 50px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  padding: 10px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
+  margin-top: 15px;
 }
 
 .reply-form textarea {
@@ -903,12 +903,31 @@ const userStore = useUserStore()
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: vertical;
-  margin-bottom: 10px;
+  font-family: inherit;
+  font-size: 14px;
 }
 
 .reply-actions {
   display: flex;
   gap: 10px;
+  margin-top: 8px;
+}
+
+.reply-actions .btn-sm.btn-primary {
+  background-color: #2196f3;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.reply-actions .btn-sm.btn-outline {
+  border: 1px solid #ddd;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.child-comments {
+  margin-top: 15px;
 }
 
 /* 相关推荐 */
@@ -922,71 +941,49 @@ const userStore = useUserStore()
   color: #333;
 }
 
-.related-snippets {
+.related-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 20px;
 }
 
-.related-snippet-item {
-  border: 1px solid #eee;
+.related-item {
+  background-color: #f9f9f9;
   border-radius: 8px;
-  padding: 15px;
-  cursor: pointer;
+  overflow: hidden;
   transition: all 0.3s;
 }
 
-.related-snippet-item:hover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+.related-item:hover {
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.related-snippet-title {
-  font-weight: 500;
-  margin-bottom: 10px;
-  color: #333;
-}
-
-.related-snippet-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  color: #777;
-}
-
-/* 弹窗样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  width: 90%;
-  max-width: 400px;
+.related-link {
+  display: block;
   padding: 20px;
+  text-decoration: none;
+  color: inherit;
 }
 
-.modal-content h3 {
-  margin-bottom: 15px;
+.related-link h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 16px;
+  line-height: 1.4;
 }
 
-.modal-content p {
-  margin-bottom: 20px;
-  color: #555;
+.related-author {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #666;
 }
 
-.modal-actions {
+.related-stats {
   display: flex;
-  gap: 10px;
-  justify-content: flex-end;
+  gap: 15px;
+  font-size: 12px;
+  color: #999;
 }
 
 /* 响应式设计 */
@@ -994,17 +991,13 @@ const userStore = useUserStore()
   .code-preview-container {
     grid-template-columns: 1fr;
   }
-
-  .action-buttons {
-    justify-content: center;
-  }
-
-  .related-snippets {
+  
+  .related-list {
     grid-template-columns: 1fr;
   }
-
-  .detail-header h1 {
-    font-size: 24px;
+  
+  .comment-item.child {
+    margin-left: 20px;
   }
 }
 </style>

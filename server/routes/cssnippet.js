@@ -227,11 +227,11 @@ router.get('/:id', (req, res) => {
 // 创建CSS代码段
 router.post('/', authMiddleware, (req, res) => {
   // 同时支持cssCode和cssContent参数，优先使用cssContent（前端实际发送的参数名）
-  const { title, description, cssCode, cssContent, isPublic, tags } = req.body;
+  const { title, description, cssCode, cssContent, htmlContent, isPublic, tags } = req.body;
   const cssContentToUse = cssContent || cssCode;
   
   // 记录详细的错误信息以便调试
-  console.log('创建CSS代码段请求数据:', { title, description: description?.substring(0, 50) + '...', cssContentLength: cssContentToUse?.length, isPublic, tags: tags?.length || 0 });
+  console.log('创建CSS代码段请求数据:', { title, description: description?.substring(0, 50) + '...', cssContentLength: cssContentToUse?.length, htmlContentLength: htmlContent?.length, isPublic, tags: tags?.length || 0 });
   console.log('用户信息:', req.user);
   
   if (!title || !cssContentToUse) {
@@ -242,13 +242,17 @@ router.post('/', authMiddleware, (req, res) => {
     return res.status(400).json({ error: 'CSS内容不能超过10000字符' });
   }
   
+  if (htmlContent && htmlContent.length > 5000) {
+    return res.status(400).json({ error: 'HTML内容不能超过5000字符' });
+  }
+  
   // 过滤CSS代码
   const filteredCSS = filterCSS(cssContentToUse);
   
   try {
     db.run(
-      'INSERT INTO cssnippets (title, description, css_content, user_id) VALUES (?, ?, ?, ?)',
-      [title, description || '', filteredCSS, req.user.userId],
+      'INSERT INTO cssnippets (title, description, css_content, html_content, user_id) VALUES (?, ?, ?, ?, ?)',
+      [title, description || '', filteredCSS, htmlContent || '', req.user.userId],
       function(err) {
         if (err) {
           console.error('创建CSS代码段数据库错误:', err.message);
@@ -260,8 +264,8 @@ router.post('/', authMiddleware, (req, res) => {
         
         // 保存版本
         db.run(
-          'INSERT INTO cssnippet_versions (cssnippet_id, css_content) VALUES (?, ?)',
-          [cssnippetId, filteredCSS]
+          'INSERT INTO cssnippet_versions (cssnippet_id, css_content, html_content) VALUES (?, ?, ?)',
+          [cssnippetId, filteredCSS, htmlContent || '']
         );
         
         // 处理标签
