@@ -93,14 +93,14 @@
     <div class="search-results">
       <div v-if="loading" class="loading">搜索中...</div>
       
-      <div v-else-if="results.length > 0" class="snippets-grid">
-        <div 
-          v-for="snippet in results" 
-          :key="snippet.id"
-          class="snippet-card"
-          @click="goToDetail(snippet.id)"
-        >
-          <div class="snippet-preview" :style="getPreviewStyle(snippet.css_code)"></div>
+      <div v-else-if="results && results.length > 0" class="snippets-grid">
+            <div 
+              v-for="snippet in results" 
+              :key="snippet.id"
+              class="snippet-card"
+              @click="goToDetail(snippet.id)"
+            >
+            <CssPreview :cssnippet="snippet" class="snippet-preview" />
           
           <div class="snippet-info">
             <h3 class="snippet-title">{{ snippet.title }}</h3>
@@ -108,11 +108,11 @@
             <p class="snippet-description">{{ snippet.description }}</p>
             
             <div class="snippet-tags">
-              <span 
-                v-for="tag in snippet.tags.slice(0, 3)" 
-                :key="tag.id"
-                class="tag"
-              >
+            <span 
+              v-for="tag in (snippet.tags || []).slice(0, 3)" 
+              :key="tag.id"
+              class="tag"
+            >
                 {{ tag.name }}
               </span>
               <span v-if="snippet.tags.length > 3" class="tag-more">+{{ snippet.tags.length - 3 }}</span>
@@ -163,7 +163,7 @@
       </div>
       
       <!-- 分页控件 -->
-      <div v-if="results.length > 0" class="pagination">
+      <div v-if="(results || []).length > 0" class="pagination">
         <button 
           class="pagination-button" 
           :disabled="currentPage === 1"
@@ -192,6 +192,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
+import CssPreview from '../components/CssPreview.vue'
 
 export default {
   name: 'Search',
@@ -207,7 +208,7 @@ export default {
     const currentPage = ref(1)
     const pageSize = ref(12)
     const loading = ref(false)
-    const results = ref([])
+    const results = ref([]) // 初始化为空数组，避免undefined错误
     const totalResults = ref(0)
     const popularTags = ref([
       { name: '动画', count: 152 },
@@ -289,11 +290,7 @@ export default {
       handleSearch()
     }
     
-    const getPreviewStyle = (cssCode) => {
-      // 提取一部分CSS代码作为预览样式
-      // 实际项目中可能需要更复杂的处理，例如提取主要样式属性
-      return { raw: cssCode.substring(0, 200) }
-    }
+    // 移除了原有的getPreviewStyle方法，使用CssPreview组件代替
     
     const getAvatar = (userId) => {
       return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
@@ -331,9 +328,11 @@ export default {
       try {
         loading.value = true
         // 加载热门代码段作为默认内容
-        const response = await cssnippetStore.getPopularCssnippets({ page: 1, pageSize: pageSize.value })
-        results.value = response.results
-        totalResults.value = response.total
+        await cssnippetStore.fetchPopular(1)
+        // 使用store中的数据
+        results.value = cssnippetStore.popular
+        // 假设total可以从pagination中获取
+        totalResults.value = cssnippetStore.pagination?.popular?.total || 0
       } catch (err) {
         console.error('Failed to load default content:', err)
       } finally {
@@ -357,7 +356,6 @@ export default {
       goToPage,
       goToDetail,
       searchByTag,
-      getPreviewStyle,
       getAvatar
     }
   }

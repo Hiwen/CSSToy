@@ -108,7 +108,7 @@
               :key="snippet.id"
               class="snippet-card"
             >
-              <div class="snippet-preview" :style="getPreviewStyle(snippet.css_code)"></div>
+              <CssPreview :cssnippet="snippet" class="snippet-preview" />
               
               <div class="snippet-info">
                 <h4 class="snippet-title">{{ snippet.title }}</h4>
@@ -193,7 +193,7 @@
               class="snippet-card"
               @click="goToDetail(snippet.id)"
             >
-              <div class="snippet-preview" :style="getPreviewStyle(snippet.css_code)"></div>
+              <CssPreview :cssnippet="snippet" class="snippet-preview" />
               
               <div class="snippet-info">
                 <h4 class="snippet-title">{{ snippet.title }}</h4>
@@ -270,7 +270,7 @@
               class="snippet-card"
               @click="goToDetail(snippet.id)"
             >
-              <div class="snippet-preview" :style="getPreviewStyle(snippet.css_code)"></div>
+              <CssPreview :cssnippet="snippet" class="snippet-preview" />
               
               <div class="snippet-info">
                 <h4 class="snippet-title">{{ snippet.title }}</h4>
@@ -531,10 +531,11 @@
 </template>
 
 <script setup>
-   import { ref, reactive, onMounted } from 'vue'
-   import { useRouter } from 'vue-router'
-   import { useUserStore } from '../stores/user'
-   import { useCssnippetStore } from '../stores/cssnippet'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user'
+import { useCssnippetStore } from '../stores/cssnippet'
+import CssPreview from '../components/CssPreview.vue'
    import DeleteConfirm from '../components/DeleteConfirm.vue'
    
    const router = useRouter();
@@ -786,10 +787,7 @@
   router.push(`/cssnippet/${id}/edit`)
     }
     
-    const getPreviewStyle = (cssCode) => {
-        // 添加空值检查，防止调用undefined/null的substring方法
-        return { raw: cssCode ? cssCode.substring(0, 200) : '' };
-      };
+    // 移除了原有的getPreviewStyle方法，使用CssPreview组件代替
     
     const getAvatar = (userId) => {
       return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`

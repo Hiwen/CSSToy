@@ -25,7 +25,7 @@
     
     <div v-else class="cssnippet-grid">
       <div v-for="cssnippet in currentList" :key="cssnippet.id" class="cssnippet-card card">
-        <div class="cssnippet-preview" v-html="getPreviewHTML(cssnippet)"></div>
+        <CssPreview :cssnippet="cssnippet" class="cssnippet-preview" />
         <h3 class="cssnippet-title">{{ cssnippet.title }}</h3>
         <p class="cssnippet-description">{{ truncateText(cssnippet.description, 100) }}</p>
         
@@ -106,191 +106,122 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useCSSnippetStore } from '../stores/cssnippet'
 import { useUserStore } from '../stores/user'
 import { useRouter } from 'vue-router'
+import CssPreview from '../components/CssPreview.vue'
 
-export default {
-  name: 'Home',
-  setup() {
-    const cssnippetStore = useCSSnippetStore()
-    const userStore = useUserStore()
-    const router = useRouter()
-    const activeTab = ref('popular')
-    const currentPage = ref(1)
-    
-    const loading = computed(() => cssnippetStore.loading)
-    const error = computed(() => cssnippetStore.error)
-    const currentList = computed(() => {
-      return activeTab.value === 'popular' ? cssnippetStore.popular : cssnippetStore.latest
-    })
-    
-    const currentPagination = computed(() => {
-      return activeTab.value === 'popular' 
-        ? cssnippetStore.pagination.popular 
-        : cssnippetStore.pagination.latest
-    })
-    
-    const totalPages = computed(() => currentPagination.value.pages || 1)
-    
-    const pageRange = computed(() => {
-      const range = []
-      const maxVisible = 5
-      let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-      let end = Math.min(totalPages.value, start + maxVisible - 1)
-      
-      // 调整起始页，确保显示足够的页数
-      if (end - start + 1 < maxVisible) {
-        start = Math.max(1, end - maxVisible + 1)
-      }
-      
-      for (let i = start; i <= end; i++) {
-        range.push(i)
-      }
-      
-      return range
-    })
-    
-    const fetchData = async (page) => {
-      if (activeTab.value === 'popular') {
-        await cssnippetStore.fetchPopular(page)
-      } else {
-        await cssnippetStore.fetchLatest(page)
-      }
-    }
-    
-    const changePage = (page) => {
-      if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page
-        fetchData(page)
-      }
-    }
-    
-    const getPreviewHTML = (cssnippet) => {
-      // 获取CSS代码段的内容
-      const css = cssnippet.css_content || ''
-      const html = cssnippet.html_content || `<div class="preview-element">示例元素</div>`
-      
-      // 创建唯一ID用于样式隔离
-      const previewId = `preview-${cssnippet.id}`
-      
-      // 转换CSS为可直接应用的格式
-      let processedCss = css
-      if (css) {
-        // 移除可能存在的选择器和大括号，只保留样式声明
-        processedCss = css.replace(/[^\{]+\{([^}]*)\}/g, '$1').trim()
-        // 移除注释
-        processedCss = processedCss.replace(/\/\*[^*]*\*\//g, '')
-        // 清理多余的空白和分号
-        processedCss = processedCss.replace(/;\s*;/g, ';').replace(/\s+/g, ' ').trim()
-      }
-      
-      // 如果HTML内容包含preview-element类，我们可以直接在其上应用样式
-      // 否则我们将创建一个新的预览元素并应用样式
-      if (html.includes('class="preview-element"')) {
-        // 如果HTML中已经有preview-element类，我们可以将其包装在唯一ID的容器中
-        // 然后使用style标签应用样式
-        return `
-          <div class="preview-wrapper">
-            <div id="${previewId}">
-              ${html}
-            </div>
-            <style>
-              #${previewId} .preview-element {
-                ${processedCss}
-              }
-            </style>
-          </div>
-        `
-      } else {
-        // 如果HTML中没有preview-element类，我们将创建一个默认的预览元素并应用内联样式
-        return `
-          <div class="preview-wrapper">
-            <div class="preview-element" style="${processedCss}">
-              示例元素
-            </div>
-          </div>
-        `
-      }
-    }
-    
-    const truncateText = (text, maxLength) => {
-      if (!text) return ''
-      if (text.length <= maxLength) return text
-      return text.substring(0, maxLength) + '...'
-    }
-    
-    const toggleLike = async (event, cssnippet) => {
-      // 阻止事件冒泡，避免触发卡片点击
-      event.stopPropagation()
-      event.preventDefault()
-      
-      if (!userStore.isLoggedIn) {
-        // 保存当前页面，以便登录后返回
-        localStorage.setItem('redirectAfterLogin', window.location.pathname)
-        router.push({ name: 'Login' })
-        return
-      }
+// 组件状态和逻辑
+const cssnippetStore = useCSSnippetStore()
+const userStore = useUserStore()
+const router = useRouter()
+const activeTab = ref('popular')
+const currentPage = ref(1)
 
-      try {
-        // 调用store方法，store会自动处理状态更新
-        await cssnippetStore.toggleLike(cssnippet.id)
-      } catch (err) {
-        console.error('Failed to toggle like:', err)
-        // 可以在这里添加用户友好的错误提示
-      }
-    }
-    
-    const toggleFavorite = async (event, cssnippet) => {
-      // 阻止事件冒泡，避免触发卡片点击
-      event.stopPropagation()
-      event.preventDefault()
-      
-      if (!userStore.isLoggedIn) {
-        // 保存当前页面，以便登录后返回
-        localStorage.setItem('redirectAfterLogin', window.location.pathname)
-        router.push({ name: 'Login' })
-        return
-      }
+const loading = computed(() => cssnippetStore.loading)
+const error = computed(() => cssnippetStore.error)
+const currentList = computed(() => {
+  return activeTab.value === 'popular' ? cssnippetStore.popular : cssnippetStore.latest
+})
 
-      try {
-        // 调用store方法，store会自动处理状态更新
-        await cssnippetStore.toggleCollect(cssnippet.id)
-      } catch (err) {
-        console.error('Failed to toggle favorite:', err)
-        // 可以在这里添加用户友好的错误提示
-      }
-    }
-    
-    // 监听标签切换
-    watch(activeTab, () => {
-      currentPage.value = 1
-      fetchData(1)
-    })
-    
-    onMounted(() => {
-      fetchData(1)
-    })
-    
-    return {
-      activeTab,
-      loading,
-      error,
-      currentList,
-      currentPage,
-      totalPages,
-      pageRange,
-      changePage,
-      getPreviewHTML,
-      truncateText,
-      toggleLike,
-      toggleFavorite,
-      userStore
-    }
+const currentPagination = computed(() => {
+  return activeTab.value === 'popular' 
+    ? cssnippetStore.pagination.popular 
+    : cssnippetStore.pagination.latest
+})
+
+const totalPages = computed(() => currentPagination.value.pages || 1)
+
+const pageRange = computed(() => {
+  const range = []
+  const maxVisible = 5
+  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
+  let end = Math.min(totalPages.value, start + maxVisible - 1)
+  
+  // 调整起始页，确保显示足够的页数
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1)
+  }
+  
+  for (let i = start; i <= end; i++) {
+    range.push(i)
+  }
+  
+  return range
+})
+
+const fetchData = async (page) => {
+  if (activeTab.value === 'popular') {
+    await cssnippetStore.fetchPopular(page)
+  } else {
+    await cssnippetStore.fetchLatest(page)
   }
 }
+
+const changePage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    fetchData(page)
+  }
+}
+
+const truncateText = (text, maxLength) => {
+  if (!text) return ''
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
+}
+
+const toggleLike = async (event, cssnippet) => {
+  // 阻止事件冒泡，避免触发卡片点击
+  event.stopPropagation()
+  event.preventDefault()
+  
+  if (!userStore.isLoggedIn) {
+    // 保存当前页面，以便登录后返回
+    localStorage.setItem('redirectAfterLogin', window.location.pathname)
+    router.push({ name: 'Login' })
+    return
+  }
+
+  try {
+    // 调用store方法，store会自动处理状态更新
+    await cssnippetStore.toggleLike(cssnippet.id)
+  } catch (err) {
+    console.error('Failed to toggle like:', err)
+  }
+}
+
+const toggleFavorite = async (event, cssnippet) => {
+  // 阻止事件冒泡，避免触发卡片点击
+  event.stopPropagation()
+  event.preventDefault()
+  
+  if (!userStore.isLoggedIn) {
+    // 保存当前页面，以便登录后返回
+    localStorage.setItem('redirectAfterLogin', window.location.pathname)
+    router.push({ name: 'Login' })
+    return
+  }
+
+  try {
+    // 调用store方法，store会自动处理状态更新
+    await cssnippetStore.toggleCollect(cssnippet.id)
+  } catch (err) {
+    console.error('Failed to toggle favorite:', err)
+  }
+}
+
+// 监听标签切换
+watch(activeTab, () => {
+  currentPage.value = 1
+  fetchData(1)
+})
+
+onMounted(() => {
+  fetchData(1)
+})
 </script>
 
 <style scoped>
@@ -329,6 +260,14 @@ export default {
 .cssnippet-card {
   display: flex;
   flex-direction: column;
+}
+
+.cssnippet-preview {
+  width: 100%;
+  height: 150px;
+  background-color: #f9f9f9;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
 }
 
 .cssnippet-title {
