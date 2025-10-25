@@ -126,56 +126,202 @@ const cssnippetStore = defineStore('cssnippet', {
     
     async toggleLike(id) {
       try {
-        // 先检查当前状态
-        const isCurrentlyLiked = this.current && this.current.isLiked
+        // 尝试从当前列表或详情中获取当前状态
+        let isCurrentlyLiked = false
+        let currentLikesCount = 0
         
-        if (isCurrentlyLiked) {
-          await axios.delete(`/api/cssnippets/${id}/like`)
-          if (this.current) {
-            this.current.isLiked = false
-            this.current.likes_count = Math.max(0, this.current.likes_count - 1)
-          }
-        } else {
-          await axios.post(`/api/cssnippets/${id}/like`)
-          if (this.current) {
-            this.current.isLiked = true
-            this.current.likes_count += 1
+        // 先检查当前列表中的状态
+        let foundInList = false
+        for (const list of [this.popular, this.latest]) {
+          const item = list.find(i => i.id === id)
+          if (item) {
+            isCurrentlyLiked = item.isLiked || false
+            currentLikesCount = item.likes_count || 0
+            foundInList = true
+            break
           }
         }
         
-        // 更新列表中的数据
-        this.updateListEntry(id, 'likes_count', this.current ? this.current.likes_count : 0)
+        // 如果列表中没有，检查详情
+        if (!foundInList && this.current && this.current.id === id) {
+          isCurrentlyLiked = this.current.isLiked || false
+          currentLikesCount = this.current.likes_count || 0
+        }
         
-        return !isCurrentlyLiked
+        // 执行API调用
+        try {
+          if (isCurrentlyLiked) {
+            await axios.delete(`/api/cssnippets/${id}/like`)
+          } else {
+            await axios.post(`/api/cssnippets/${id}/like`)
+          }
+          
+          // 计算新的状态
+          const newLikeStatus = !isCurrentlyLiked
+          const newLikesCount = newLikeStatus 
+            ? currentLikesCount + 1 
+            : Math.max(0, currentLikesCount - 1)
+          
+          // 更新详情中的状态
+          if (this.current && this.current.id === id) {
+            this.current.isLiked = newLikeStatus
+            this.current.likes_count = newLikesCount
+          }
+          
+          // 更新列表中的数据 - 更新likes_count和isLiked
+          this.updateListEntry(id, 'likes_count', newLikesCount)
+          this.updateListEntry(id, 'isLiked', newLikeStatus)
+          
+          return newLikeStatus
+        } catch (apiError) {
+          // 处理API特定错误
+          if (apiError.response) {
+            // 检查是否是已点赞错误
+            if (apiError.response.data?.error === '已经点过赞了' && !isCurrentlyLiked) {
+              // 后端显示已点赞，但前端认为未点赞，需要同步状态
+              console.log('同步点赞状态：将UI更新为已点赞')
+              const newLikeStatus = true
+              const newLikesCount = currentLikesCount + 1
+              
+              // 更新状态
+              if (this.current && this.current.id === id) {
+                this.current.isLiked = newLikeStatus
+                this.current.likes_count = newLikesCount
+              }
+              
+              this.updateListEntry(id, 'likes_count', newLikesCount)
+              this.updateListEntry(id, 'isLiked', newLikeStatus)
+              
+              return newLikeStatus
+            }
+            // 检查是否是未点赞错误
+            else if (apiError.response.data?.error === '未点赞' && isCurrentlyLiked) {
+              // 后端显示未点赞，但前端认为已点赞，需要同步状态
+              console.log('同步点赞状态：将UI更新为未点赞')
+              const newLikeStatus = false
+              const newLikesCount = Math.max(0, currentLikesCount - 1)
+              
+              // 更新状态
+              if (this.current && this.current.id === id) {
+                this.current.isLiked = newLikeStatus
+                this.current.likes_count = newLikesCount
+              }
+              
+              this.updateListEntry(id, 'likes_count', newLikesCount)
+              this.updateListEntry(id, 'isLiked', newLikeStatus)
+              
+              return newLikeStatus
+            }
+          }
+          // 如果不是已知的状态同步错误，重新抛出
+          throw apiError
+        }
       } catch (error) {
+        console.error('Failed to toggle like:', error)
         throw error
       }
     },
     
     async toggleCollect(id) {
       try {
-        // 先检查当前状态
-        const isCurrentlyCollected = this.current && this.current.isCollected
+        // 尝试从当前列表或详情中获取当前状态
+        let isCurrentlyCollected = false
+        let currentFavoriteCount = 0
         
-        if (isCurrentlyCollected) {
-          await axios.delete(`/api/cssnippets/${id}/collect`)
-          if (this.current) {
-            this.current.isCollected = false
-            this.current.collections_count = Math.max(0, this.current.collections_count - 1)
-          }
-        } else {
-          await axios.post(`/api/cssnippets/${id}/collect`)
-          if (this.current) {
-            this.current.isCollected = true
-            this.current.collections_count += 1
+        // 先检查当前列表中的状态
+        let foundInList = false
+        for (const list of [this.popular, this.latest]) {
+          const item = list.find(i => i.id === id)
+          if (item) {
+            isCurrentlyCollected = item.isCollected || false
+            currentFavoriteCount = item.favorite_count || item.collections_count || 0
+            foundInList = true
+            break
           }
         }
         
-        // 更新列表中的数据
-        this.updateListEntry(id, 'collections_count', this.current ? this.current.collections_count : 0)
+        // 如果列表中没有，检查详情
+        if (!foundInList && this.current && this.current.id === id) {
+          isCurrentlyCollected = this.current.isCollected || false
+          currentFavoriteCount = this.current.favorite_count || this.current.collections_count || 0
+        }
         
-        return !isCurrentlyCollected
+        // 执行API调用
+        try {
+          if (isCurrentlyCollected) {
+            await axios.delete(`/api/cssnippets/${id}/collect`)
+          } else {
+            await axios.post(`/api/cssnippets/${id}/collect`)
+          }
+          
+          // 计算新的状态
+          const newCollectStatus = !isCurrentlyCollected
+          const newFavoriteCount = newCollectStatus 
+            ? currentFavoriteCount + 1 
+            : Math.max(0, currentFavoriteCount - 1)
+          
+          // 更新详情中的状态
+          if (this.current && this.current.id === id) {
+            this.current.isCollected = newCollectStatus
+            this.current.favorite_count = newFavoriteCount
+            this.current.collections_count = newFavoriteCount // 保持兼容
+          }
+          
+          // 更新列表中的数据 - 更新favorite_count、collections_count和isCollected
+          this.updateListEntry(id, 'favorite_count', newFavoriteCount)
+          this.updateListEntry(id, 'collections_count', newFavoriteCount) // 保持兼容
+          this.updateListEntry(id, 'isCollected', newCollectStatus)
+          
+          return newCollectStatus
+        } catch (apiError) {
+          // 处理API特定错误
+          if (apiError.response) {
+            // 检查是否是已收藏错误
+            if (apiError.response.data?.error === '已经收藏过了' && !isCurrentlyCollected) {
+              // 后端显示已收藏，但前端认为未收藏，需要同步状态
+              console.log('同步收藏状态：将UI更新为已收藏')
+              const newCollectStatus = true
+              const newFavoriteCount = currentFavoriteCount + 1
+              
+              // 更新状态
+              if (this.current && this.current.id === id) {
+                this.current.isCollected = newCollectStatus
+                this.current.favorite_count = newFavoriteCount
+                this.current.collections_count = newFavoriteCount
+              }
+              
+              this.updateListEntry(id, 'favorite_count', newFavoriteCount)
+              this.updateListEntry(id, 'collections_count', newFavoriteCount)
+              this.updateListEntry(id, 'isCollected', newCollectStatus)
+              
+              return newCollectStatus
+            }
+            // 检查是否是未收藏错误
+            else if (apiError.response.data?.error === '未收藏' && isCurrentlyCollected) {
+              // 后端显示未收藏，但前端认为已收藏，需要同步状态
+              console.log('同步收藏状态：将UI更新为未收藏')
+              const newCollectStatus = false
+              const newFavoriteCount = Math.max(0, currentFavoriteCount - 1)
+              
+              // 更新状态
+              if (this.current && this.current.id === id) {
+                this.current.isCollected = newCollectStatus
+                this.current.favorite_count = newFavoriteCount
+                this.current.collections_count = newFavoriteCount
+              }
+              
+              this.updateListEntry(id, 'favorite_count', newFavoriteCount)
+              this.updateListEntry(id, 'collections_count', newFavoriteCount)
+              this.updateListEntry(id, 'isCollected', newCollectStatus)
+              
+              return newCollectStatus
+            }
+          }
+          // 如果不是已知的状态同步错误，重新抛出
+          throw apiError
+        }
       } catch (error) {
+        console.error('Failed to toggle favorite:', error)
         throw error
       }
     },

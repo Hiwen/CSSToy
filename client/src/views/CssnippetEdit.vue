@@ -37,11 +37,30 @@
             class="form-input code-editor" 
             v-model="form.cssCode"
             placeholder="请输入 CSS 代码"
-            rows="15"
+            rows="10"
             required
             @input="updatePreview"
           ></textarea>
           <div v-if="errors.cssCode" class="form-error">{{ errors.cssCode }}</div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="htmlCode">HTML 代码</label>
+          <textarea 
+            id="htmlCode" 
+            class="form-input code-editor" 
+            v-model="form.htmlCode"
+            placeholder="请输入 HTML 代码"
+            rows="8"
+            @input="updatePreview"
+          ></textarea>
+          <div class="template-buttons">
+            <button type="button" class="btn btn-sm btn-outline" @click="insertHtmlTemplate('button')">按钮</button>
+            <button type="button" class="btn btn-sm btn-outline" @click="insertHtmlTemplate('card')">卡片</button>
+            <button type="button" class="btn btn-sm btn-outline" @click="insertHtmlTemplate('link')">链接</button>
+            <button type="button" class="btn btn-sm btn-outline" @click="insertHtmlTemplate('input')">输入框</button>
+            <button type="button" class="btn btn-sm btn-outline" @click="insertHtmlTemplate('text')">默认文本</button>
+          </div>
         </div>
         
         <div class="form-group">
@@ -123,6 +142,7 @@ export default {
       title: '',
       description: '',
       cssCode: '',
+      htmlCode: '',
       tags: [],
       isPublic: true
     })
@@ -193,6 +213,7 @@ export default {
         form.title = snippet.title
         form.description = snippet.description
         form.cssCode = snippet.css_content
+        form.htmlCode = snippet.html_content || ''
         form.tags = snippet.tags.map(tag => tag.name)
         form.isPublic = snippet.is_public
         
@@ -222,6 +243,7 @@ export default {
           title: form.title.trim(),
           description: form.description.trim(),
           cssContent: form.cssCode.trim(),
+          htmlContent: form.htmlCode.trim(),
           tags: form.tags,
           isPublic: form.isPublic
         }
@@ -269,6 +291,13 @@ export default {
         
         // 直接通过DOM引用设置样式，这是最可靠的方法
         if (previewRef.value) {
+          // 更新HTML内容
+          if (form.htmlCode.trim()) {
+            previewRef.value.innerHTML = form.htmlCode.trim()
+          } else {
+            previewRef.value.innerHTML = 'CSS 预览效果'
+          }
+          
           // 使用try-catch确保即使CSS语法错误也不会阻塞功能
           try {
             previewRef.value.style.cssText = form.cssCode
@@ -276,6 +305,7 @@ export default {
             console.warn('CSS语法错误:', cssError)
             // 如果CSS语法错误，设置错误提示样式
             previewRef.value.style.cssText = 'background-color: #ffebee; color: #c62828; padding: 16px; border-radius: 4px;'
+            previewRef.value.innerHTML = 'CSS语法错误'
           }
         }
       } catch (err) {
@@ -288,6 +318,18 @@ export default {
           borderRadius: '4px'
         }
       }
+    }
+    
+    const insertHtmlTemplate = (type) => {
+      const templates = {
+        'button': '<button>按钮</button>',
+        'card': '<div class="card">卡片内容</div>',
+        'link': '<a href="#">链接</a>',
+        'input': '<input type="text" placeholder="输入框">',
+        'text': '<div>默认文本</div>'
+      }
+      form.htmlCode = templates[type] || ''
+      updatePreview()
     }
     
     // 检查用户登录状态
@@ -341,7 +383,8 @@ export default {
       handleSubmit,
       addTag,
       removeTag,
-      updatePreview
+      updatePreview,
+      insertHtmlTemplate
     }
   }
 }
@@ -369,6 +412,18 @@ export default {
   font-size: 14px;
   line-height: 1.5;
   resize: vertical;
+}
+
+.template-buttons {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.template-buttons .btn {
+  font-size: 12px;
+  padding: 4px 12px;
 }
 
 .tags-container {

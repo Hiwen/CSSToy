@@ -30,9 +30,38 @@ router.get('/popular', (req, res) => {
      ORDER BY (c.likes_count * 0.5 + c.collections_count * 0.3 + c.comments_count * 0.2) DESC 
      LIMIT ? OFFSET ?`,
     [limit, offset],
-    (err, cssnippets) => {
+    async (err, cssnippets) => {
       if (err) {
         return res.status(500).json({ error: '数据库错误' });
+      }
+      
+      // 如果用户已登录，为每个代码段添加点赞和收藏状态
+      if (req.headers.authorization) {
+        try {
+          const token = req.headers.authorization.split(' ')[1];
+          const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'csstoy_secret_key');
+          
+          // 使用Promise.all并发检查所有代码段的状态
+          await Promise.all(cssnippets.map(cssnippet => {
+            return new Promise((resolve) => {
+              // 检查点赞状态
+              db.get('SELECT * FROM likes WHERE user_id = ? AND cssnippet_id = ?', 
+                [decoded.userId, cssnippet.id], (err, like) => {
+                cssnippet.isLiked = !!like;
+                
+                // 检查收藏状态
+                db.get('SELECT * FROM collections WHERE user_id = ? AND cssnippet_id = ?', 
+                  [decoded.userId, cssnippet.id], (err, collection) => {
+                  cssnippet.isCollected = !!collection;
+                  resolve();
+                });
+              });
+            });
+          }));
+        } catch (e) {
+          // token无效，继续返回基本信息
+          console.log('无效的token，不设置点赞和收藏状态');
+        }
       }
       
       // 获取总数
@@ -69,9 +98,38 @@ router.get('/latest', (req, res) => {
      ORDER BY c.created_at DESC 
      LIMIT ? OFFSET ?`,
     [limit, offset],
-    (err, cssnippets) => {
+    async (err, cssnippets) => {
       if (err) {
         return res.status(500).json({ error: '数据库错误' });
+      }
+      
+      // 如果用户已登录，为每个代码段添加点赞和收藏状态
+      if (req.headers.authorization) {
+        try {
+          const token = req.headers.authorization.split(' ')[1];
+          const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'csstoy_secret_key');
+          
+          // 使用Promise.all并发检查所有代码段的状态
+          await Promise.all(cssnippets.map(cssnippet => {
+            return new Promise((resolve) => {
+              // 检查点赞状态
+              db.get('SELECT * FROM likes WHERE user_id = ? AND cssnippet_id = ?', 
+                [decoded.userId, cssnippet.id], (err, like) => {
+                cssnippet.isLiked = !!like;
+                
+                // 检查收藏状态
+                db.get('SELECT * FROM collections WHERE user_id = ? AND cssnippet_id = ?', 
+                  [decoded.userId, cssnippet.id], (err, collection) => {
+                  cssnippet.isCollected = !!collection;
+                  resolve();
+                });
+              });
+            });
+          }));
+        } catch (e) {
+          // token无效，继续返回基本信息
+          console.log('无效的token，不设置点赞和收藏状态');
+        }
       }
       
       // 获取总数

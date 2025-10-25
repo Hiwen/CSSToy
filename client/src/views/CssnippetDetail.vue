@@ -31,7 +31,7 @@
 
           <button class="btn btn-outline" @click.stop="toggleFavorite($event)" :class="{ 'active': cssnippet.isCollected }">
               <span class="icon">{{ cssnippet.isCollected ? '⭐' : '☆' }}</span>
-              <span>{{ cssnippet.collections_count }}</span>
+              <span>{{ cssnippet.favorite_count || cssnippet.collections_count }}</span>
             </button>
 
           <button class="btn btn-outline" @click.stop="copyCode($event)">
@@ -68,22 +68,12 @@
         <div class="preview-section">
           <h3>实时预览</h3>
           <div class="preview-box">
-            <div class="preview-element" :style="cssCodeStyles"></div>
+            <div class="preview-element" :style="cssCodeStyles" v-html="previewHtml"></div>
           </div>
         </div>
       </div>
 
-      <!-- HTML 模板选择 -->
-      <div class="html-template-section" v-if="htmlTemplates.length > 0">
-        <h3>选择 HTML 模板</h3>
-        <div class="templates-grid">
-          <div v-for="template in htmlTemplates" :key="template.id" class="template-item"
-            :class="{ 'active': selectedTemplate === template.id }" @click="selectTemplate(template.id)">
-            <div class="template-preview" v-html="template.preview_html"></div>
-            <span>{{ template.name }}</span>
-          </div>
-        </div>
-      </div>
+      <!-- HTML模板功能已移至编辑页面 -->
 
       <!-- 评论区域 -->
       <div class="comments-section">
@@ -218,13 +208,6 @@ const userStore = useUserStore()
     const comments = ref([])
     const deletingCommentId = ref(null)
     const relatedSnippets = ref([])
-    const htmlTemplates = ref([
-      { id: 1, name: '按钮', preview_html: '<button>按钮</button>' },
-      { id: 2, name: '卡片', preview_html: '<div class="card">卡片内容</div>' },
-      { id: 3, name: '链接', preview_html: '<a href="#">链接</a>' },
-      { id: 4, name: '输入框', preview_html: '<input type="text" placeholder="输入框">' }
-    ])
-    const selectedTemplate = ref(1)
     const copySuccess = ref(false)
     const showDeleteConfirm = ref(false)
     const deleteLoading = ref(false)
@@ -246,6 +229,13 @@ const userStore = useUserStore()
       }
 
       return cssnippet.value.css_content;
+    })
+    
+    const previewHtml = computed(() => {
+      if (!cssnippet.value || !cssnippet.value.html_content) {
+        return 'CSS 预览效果';
+      }
+      return cssnippet.value.html_content;
     })
 
     // 方法
@@ -457,9 +447,7 @@ const userStore = useUserStore()
       }
     }
 
-    const selectTemplate = (id) => {
-      selectedTemplate.value = id
-    }
+
 
     const submitComment = async () => {
       if (!newComment.value.content.trim()) return

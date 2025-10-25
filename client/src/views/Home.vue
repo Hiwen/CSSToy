@@ -47,25 +47,21 @@
           </div>
           
           <div class="cssnippet-meta">
-            <span class="meta-item">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 14s-6.5-4.5-6.5-9.5c0-1.5 1-2.5 2.5-2.5.8 0 1.5.4 2 1.2.5-.8 1.2-1.2 2-1.2 1.5 0 2.5 1 2.5 2.5 0 5-6.5 9.5-6.5 9.5z"/>
-              </svg>
-              {{ cssnippet.likes_count }}
-            </span>
-            <span class="meta-item">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm7.5 11.5l4.5-4.5-1.5-1.5L9.5 10.5l-3.5-3.5L6 7l3.5 3.5z"/>
-              </svg>
-              {{ cssnippet.collections_count }}
-            </span>
+            <button class="meta-item btn-icon" @click="toggleLike($event, cssnippet)" :class="{ 'active': cssnippet.isLiked }">
+              <span class="icon">{{ cssnippet.isLiked ? '❤️' : '🤍' }}</span>
+              <span>{{ cssnippet.likes_count || 0 }}</span>
+            </button>
+            <button class="meta-item btn-icon" @click="toggleFavorite($event, cssnippet)" :class="{ 'active': cssnippet.isCollected }">
+              <span class="icon">{{ cssnippet.isCollected ? '⭐' : '☆' }}</span>
+              <span>{{ cssnippet.favorite_count || cssnippet.collections_count || 0 }}</span>
+            </button>
             <span class="meta-item">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M1 4h14v9H1V4zm12 1H3v7h10V5z"/>
                 <circle cx="5" cy="3" r="1"/>
                 <circle cx="11" cy="3" r="1"/>
               </svg>
-              {{ cssnippet.comments_count }}
+              {{ cssnippet.comments_count || 0 }}
             </span>
           </div>
         </div>
@@ -113,11 +109,15 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useCSSnippetStore } from '../stores/cssnippet'
+import { useUserStore } from '../stores/user'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'Home',
   setup() {
     const cssnippetStore = useCSSnippetStore()
+    const userStore = useUserStore()
+    const router = useRouter()
     const activeTab = ref('popular')
     const currentPage = ref(1)
     
@@ -189,6 +189,48 @@ export default {
       return text.substring(0, maxLength) + '...'
     }
     
+    const toggleLike = async (event, cssnippet) => {
+      // 阻止事件冒泡，避免触发卡片点击
+      event.stopPropagation()
+      event.preventDefault()
+      
+      if (!userStore.isLoggedIn) {
+        // 保存当前页面，以便登录后返回
+        localStorage.setItem('redirectAfterLogin', window.location.pathname)
+        router.push({ name: 'Login' })
+        return
+      }
+
+      try {
+        // 调用store方法，store会自动处理状态更新
+        await cssnippetStore.toggleLike(cssnippet.id)
+      } catch (err) {
+        console.error('Failed to toggle like:', err)
+        // 可以在这里添加用户友好的错误提示
+      }
+    }
+    
+    const toggleFavorite = async (event, cssnippet) => {
+      // 阻止事件冒泡，避免触发卡片点击
+      event.stopPropagation()
+      event.preventDefault()
+      
+      if (!userStore.isLoggedIn) {
+        // 保存当前页面，以便登录后返回
+        localStorage.setItem('redirectAfterLogin', window.location.pathname)
+        router.push({ name: 'Login' })
+        return
+      }
+
+      try {
+        // 调用store方法，store会自动处理状态更新
+        await cssnippetStore.toggleCollect(cssnippet.id)
+      } catch (err) {
+        console.error('Failed to toggle favorite:', err)
+        // 可以在这里添加用户友好的错误提示
+      }
+    }
+    
     // 监听标签切换
     watch(activeTab, () => {
       currentPage.value = 1
@@ -209,7 +251,10 @@ export default {
       pageRange,
       changePage,
       getPreviewHTML,
-      truncateText
+      truncateText,
+      toggleLike,
+      toggleFavorite,
+      userStore
     }
   }
 }
@@ -282,6 +327,36 @@ export default {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  color: inherit;
+  font-size: inherit;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.btn-icon.active {
+  color: #3498db;
+}
+
+/* 确保卡片可以点击，除了按钮部分 */
+.cssnippet-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cssnippet-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .full-width {
