@@ -339,49 +339,64 @@ const handleViewClick = () => {
 }
 
 .btn-primary {
-  background-color: #3498db;
+  background-color: #38bdf8;
   color: white;
+  border: none;
 }
 
 .btn-primary:hover {
-  background-color: #2980b9;
+  background-color: #0ea5e9;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 .btn-outline {
   background-color: transparent;
-  border: 1px solid #ddd;
-  color: #666;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
 }
 
 .btn-outline:hover {
-  background-color: #f0f0f0;
+  background-color: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #7dd3fc;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
 }
 
 .btn-danger {
-  background-color: #e74c3c;
-  color: white;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .btn-danger:hover {
-  background-color: #c0392b;
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #f87171;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
 }
 
 .btn-secondary {
-  background-color: #95a5a6;
-  color: white;
+  background-color: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .btn-secondary:hover {
-  background-color: #7f8c8d;
+  background-color: rgba(148, 163, 184, 0.2);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
 }
 
 .btn-success {
-  background-color: #2ecc71;
-  color: white;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .btn-success:hover {
-  background-color: #27ae60;
+  background-color: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #86efac;
 }
 
 .full-width {

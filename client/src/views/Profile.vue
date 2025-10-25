@@ -251,33 +251,22 @@
           <div v-if="loading" class="loading">加载中...</div>
           
           <div v-else-if="myComments.length > 0" class="comments-list">
-            <div 
-              v-for="comment in myComments" 
+            <CommentItem
+              v-for="comment in formattedComments"
               :key="comment.id"
-              class="comment-item card"
+              :comment="comment"
+              :user-store="userStore"
+              :replying-to="null"
+              :initial-reply-content="''"
+              @delete="confirmAndDeleteComment"
+              @goto-detail="goToDetail"
             >
-              <div class="comment-header">
-                <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
-                <span class="comment-target">
-                  评论于：
-                  <a href="#" @click.prevent="goToDetail(comment.cssnippet_id)">
-                    {{ comment.cssnippet_title }}
-                  </a>
-                </span>
-              </div>
-              
-              <div class="comment-content">
-                {{ comment.content }}
-              </div>
-              
-              <div class="comment-actions">
+              <template #action-buttons>
                 <button class="btn btn-sm btn-outline" @click="goToDetail(comment.cssnippet_id)">
                   查看代码段
                 </button>
-                
-                <button class="btn btn-sm btn-danger" @click="() => confirmAndDeleteComment(comment.id)" type="button">删除评论</button>
-              </div>
-            </div>
+              </template>
+            </CommentItem>
           </div>
           
           <div v-else class="empty-state">
@@ -441,12 +430,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useCSSnippetStore } from '../stores/cssnippet'
 import SnippetCard from '../components/SnippetCard.vue'
-   import DeleteConfirm from '../components/DeleteConfirm.vue'
+import DeleteConfirm from '../components/DeleteConfirm.vue'
+import CommentItem from '../components/CommentItem.vue'
    
    const router = useRouter();
    const userStore = useUserStore()
@@ -713,6 +703,17 @@ import SnippetCard from '../components/SnippetCard.vue'
         minute: '2-digit'
       }).format(date)
     }
+
+    // 格式化评论数据，使其符合CommentItem组件的需求
+    const formattedComments = computed(() => {
+      return myComments.value.map(comment => ({
+        ...comment,
+        // 添加username字段（个人中心评论显示自己的用户名）
+        username: userStore.user?.username || '用户',
+        // 确保有children字段
+        children: []
+      }))
+    })
     
     onMounted(() => {
       if (userStore.isLoggedIn) {
@@ -738,19 +739,20 @@ import SnippetCard from '../components/SnippetCard.vue'
 .not-logged-in {
   text-align: center;
   padding: 60px 20px;
-  background-color: white;
+  background-color: rgba(16, 23, 42, 0.9);
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 .not-logged-in h2 {
   margin-bottom: 15px;
-  color: #333;
+  color: #38bdf8;
 }
 
 .not-logged-in p {
   margin-bottom: 25px;
-  color: #666;
+  color: #64748b;
 }
 
 /* 个人信息卡片 */
@@ -761,6 +763,10 @@ import SnippetCard from '../components/SnippetCard.vue'
   align-items: center;
   padding: 30px;
   margin-bottom: 30px;
+  background-color: rgba(16, 23, 42, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 .profile-info {
@@ -774,17 +780,19 @@ import SnippetCard from '../components/SnippetCard.vue'
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #f0f0f0;
+  border: 4px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
 }
 
 .user-details h2 {
   font-size: 28px;
   margin-bottom: 10px;
-  color: #333;
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 .user-email {
-  color: #666;
+  color: #64748b;
   margin-bottom: 20px;
 }
 
@@ -802,12 +810,13 @@ import SnippetCard from '../components/SnippetCard.vue'
 .stat-number {
   font-size: 24px;
   font-weight: bold;
-  color: #3498db;
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
 .stat-label {
   font-size: 14px;
-  color: #666;
+  color: #64748b;
   margin-top: 5px;
 }
 
@@ -823,8 +832,11 @@ import SnippetCard from '../components/SnippetCard.vue'
 /* 标签页 */
 .profile-tabs {
   display: flex;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 30px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  margin-bottom: 0;
+  background-color: rgba(16, 23, 42, 0.9);
+  border-radius: 8px 8px 0 0;
+  padding: 0 20px;
 }
 
 .tab-button {
@@ -832,18 +844,18 @@ import SnippetCard from '../components/SnippetCard.vue'
   background: none;
   border: none;
   font-size: 16px;
-  color: #666;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.3s;
   position: relative;
 }
 
 .tab-button:hover {
-  color: #3498db;
+  color: #38bdf8;
 }
 
 .tab-button.active {
-  color: #3498db;
+  color: #38bdf8;
   font-weight: 500;
 }
 
@@ -854,15 +866,19 @@ import SnippetCard from '../components/SnippetCard.vue'
   left: 0;
   width: 100%;
   height: 3px;
-  background-color: #3498db;
+  background-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 
 /* 标签页内容 */
 .tab-content {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background-color: rgba(16, 23, 42, 0.9);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.1);
   overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-top: none;
+  margin-top: -1px;
 }
 
 .tab-header {
@@ -870,24 +886,24 @@ import SnippetCard from '../components/SnippetCard.vue'
   justify-content: space-between;
   align-items: center;
   padding: 20px 30px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 .tab-header h3 {
   margin: 0;
-  color: #333;
+  color: #38bdf8;
 }
 
 .loading {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: #64748b;
 }
 
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: #64748b;
 }
 
 .empty-state p {
@@ -898,36 +914,40 @@ import SnippetCard from '../components/SnippetCard.vue'
 /* 代码段网格 */
 .snippets-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  padding: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 30px;
+  padding: 20px 30px;
 }
 
 .snippet-card {
-  border: 1px solid #eee;
+  border: 1px solid rgba(56, 189, 248, 0.2);
   border-radius: 8px;
+  background-color: rgba(16, 23, 42, 0.9);
   overflow: hidden;
   transition: all 0.3s;
   display: flex;
   flex-direction: column;
   cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .snippet-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
 .snippet-preview {
   width: 100%;
-  height: 150px;
-  background-color: #f9f9f9;
+  min-height: 150px;
+  background-color: rgba(26, 32, 44, 0.9);
   border-radius: 8px 8px 0 0;
   overflow: hidden;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.1);
 }
 
 .snippet-info {
-  padding: 15px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -942,12 +962,18 @@ import SnippetCard from '../components/SnippetCard.vue'
 .snippet-title {
   margin: 5px 0 10px;
   font-size: 18px;
-  color: #333;
+  color: #38bdf8;
   line-height: 1.4;
+  transition: all 0.3s;
+}
+
+.snippet-title:hover {
+  color: #7dd3fc;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 .snippet-description {
-  color: #666;
+  color: #e2e8f0;
   font-size: 14px;
   margin-bottom: 15px;
   line-height: 1.5;
@@ -960,7 +986,7 @@ import SnippetCard from '../components/SnippetCard.vue'
   align-items: center;
   margin-bottom: 15px;
   font-size: 14px;
-  color: #999;
+  color: #64748b;
 }
 
 .publish-date {
@@ -984,28 +1010,36 @@ import SnippetCard from '../components/SnippetCard.vue'
   gap: 10px;
   margin-bottom: 10px;
   font-size: 14px;
-  color: #666;
+  color: #64748b;
 }
 
 .avatar {
   width: 24px;
   height: 24px;
   border-radius: 50%;
+  border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 .snippet-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 15px;
 }
 
 .tag {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background-color: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
   padding: 4px 10px;
-  border-radius: 15px;
+  border-radius: 20px;
   font-size: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  transition: all 0.3s;
+}
+
+.tag:hover {
+  background-color: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
 .snippet-actions {
@@ -1018,31 +1052,53 @@ import SnippetCard from '../components/SnippetCard.vue'
   font-size: 14px;
   border-radius: 4px;
   cursor: pointer;
-  border: 1px solid #ddd;
-  background-color: white;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  background-color: transparent;
+  color: #38bdf8;
   transition: all 0.3s;
 }
 
 .btn-sm:hover {
-  opacity: 0.8;
+  background-color: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #7dd3fc;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
 }
 
 .btn-danger {
-  background-color: #dc3545;
-  color: white;
-  border-color: #dc3545;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
 }
 
 .btn-secondary {
-  background-color: #6c757d;
-  color: white;
-  border-color: #6c757d;
+  background-color: rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(148, 163, 184, 0.2);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
 }
 
 .btn-success {
-  background-color: #28a745;
-  color: white;
-  border-color: #28a745;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.btn-success:hover {
+  background-color: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #86efac;
 }
 
 /* 评论列表 */
@@ -1050,39 +1106,43 @@ import SnippetCard from '../components/SnippetCard.vue'
   padding: 20px 30px;
 }
 
-.comment-item {
-  margin-bottom: 20px;
-  padding: 20px;
-}
-
-.comment-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
+/* 评论目标信息 */
+.comment-target-info {
+  margin-top: 15px;
+  padding: 10px 15px;
+  background-color: rgba(26, 32, 44, 0.9);
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.1);
   font-size: 14px;
-  color: #666;
 }
 
-.comment-target a {
-  color: #3498db;
+.comment-target-info a {
+  color: #38bdf8;
   text-decoration: none;
+  transition: all 0.3s;
+  font-weight: 500;
 }
 
-.comment-target a:hover {
+.comment-target-info a:hover {
   text-decoration: underline;
+  color: #7dd3fc;
+  text-shadow: 0 0 5px rgba(56, 189, 248, 0.3);
 }
 
-.comment-content {
-  font-size: 16px;
-  line-height: 1.6;
-  color: #333;
-  margin-bottom: 15px;
+/* 调整CommentItem在Profile中的一些特定样式 */
+.comments-list :deep(.comment-item) {
+  position: relative;
 }
 
-.comment-actions {
-  display: flex;
-  gap: 10px;
+.comments-list :deep(.comment-item .comment-header) {
+  flex-wrap: wrap;
+}
+
+/* 确保查看代码段按钮在移动设备上也能正常显示 */
+@media (max-width: 768px) {
+  .comments-list {
+    padding: 15px;
+  }
 }
 
 /* 分页 */
@@ -1096,25 +1156,31 @@ import SnippetCard from '../components/SnippetCard.vue'
 
 .pagination-button {
   padding: 8px 16px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: transparent;
+  border: 1px solid rgba(56, 189, 248, 0.3);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s;
+  color: #38bdf8;
 }
 
 .pagination-button:hover:not(:disabled) {
-  background-color: #e9ecef;
+  background-color: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #7dd3fc;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
 }
 
 .pagination-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background-color: rgba(16, 23, 42, 0.7);
+  border-color: rgba(56, 189, 248, 0.1);
 }
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: #64748b;
 }
 
 /* 弹窗样式 */
@@ -1124,22 +1190,29 @@ import SnippetCard from '../components/SnippetCard.vue'
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(5px);
 }
 
 .modal-content {
   width: 90%;
   max-width: 500px;
   padding: 30px;
+  background-color: rgba(16, 23, 42, 0.95);
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.1);
 }
 
 .modal-content h3 {
   margin-bottom: 20px;
-  color: #333;
+  color: #38bdf8;
+  text-align: center;
+  font-size: 20px;
 }
 
 .modal-actions {
@@ -1153,25 +1226,60 @@ import SnippetCard from '../components/SnippetCard.vue'
   margin-bottom: 20px;
 }
 
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+  background-color: rgba(26, 32, 44, 0.9);
+  color: #e2e8f0;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .profile-header {
     flex-direction: column;
     text-align: center;
     gap: 20px;
+    padding: 20px;
   }
   
   .profile-info {
     flex-direction: column;
     text-align: center;
+    gap: 20px;
   }
   
   .user-stats {
+    justify-content: center;
+    gap: 20px;
+  }
+  
+  .profile-actions {
+    flex-wrap: wrap;
     justify-content: center;
   }
   
   .profile-tabs {
     overflow-x: auto;
+    padding: 0;
   }
   
   .tab-button {
@@ -1181,13 +1289,23 @@ import SnippetCard from '../components/SnippetCard.vue'
   
   .snippets-grid {
     grid-template-columns: 1fr;
-    padding: 20px;
+    padding: 15px;
+    gap: 20px;
   }
   
   .tab-header {
     flex-direction: column;
     gap: 15px;
     text-align: center;
+    padding: 15px;
+  }
+  
+  .comment-section {
+    padding: 15px;
+  }
+  
+  .comment-form {
+    padding: 15px;
   }
   
   .comment-header {
@@ -1199,11 +1317,17 @@ import SnippetCard from '../components/SnippetCard.vue'
   .pagination {
     flex-direction: column;
     gap: 10px;
+    padding: 20px 15px;
   }
   
   .pagination-button {
     width: 100%;
     max-width: 200px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    padding: 20px;
   }
 }
 </style>

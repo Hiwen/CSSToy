@@ -98,73 +98,18 @@
 
         <!-- 评论列表 -->
         <div class="comments-list">
-          <div v-for="comment in comments" :key="comment.id" class="comment-item">
-            <div class="comment-header">
-              <img :src="getAvatar(comment.user_id)" alt="评论者头像" class="avatar">
-              <div class="comment-info">
-                <span class="comment-author">{{ comment.username }}</span>
-                <span class="comment-time">{{ formatDate(comment.created_at) }}</span>
-              </div>
-              <div class="comment-actions">
-                <button class="btn btn-sm" @click="replyToComment(comment)">
-                  回复
-                </button>
-                <button v-if="isCommentOwner(comment)" class="btn btn-sm text-danger"
-                  @click.stop="deleteComment(comment.id, $event)">
-                  删除
-                </button>
-              </div>
-            </div>
-
-            <div class="comment-content">
-              <span v-if="comment.parent_id">
-                <a href="#" class="link">@{{ getUsernameById(comment.parent_user_id) }}</a>
-              </span>
-              {{ comment.content }}
-            </div>
-
-            <!-- 回复表单 -->
-            <div v-if="replyingTo === comment.id" class="reply-form">
-              <textarea v-model="replyContent" placeholder="回复 @{{ comment.username }}..." rows="2"></textarea>
-              <div class="reply-actions">
-                <button class="btn btn-sm btn-primary" @click="submitReply(comment.id)">
-                  回复
-                </button>
-                <button class="btn btn-sm btn-outline" @click="cancelReply">
-                  取消
-                </button>
-              </div>
-            </div>
-
-            <!-- 子评论 -->
-            <div class="child-comments" v-if="comment.children && comment.children.length > 0">
-              <div v-for="child in comment.children" :key="child.id" class="comment-item child">
-                <div class="comment-header">
-                  <img :src="getAvatar(child.user_id)" alt="回复者头像" class="avatar">
-                  <div class="comment-info">
-                    <span class="comment-author">{{ child.username }}</span>
-                    <span class="comment-time">{{ formatDate(child.created_at) }}</span>
-                  </div>
-                  <div class="comment-actions">
-                    <button class="btn btn-sm" @click="replyToComment(child)">
-                      回复
-                    </button>
-                    <button v-if="isCommentOwner(child)" class="btn btn-sm text-danger"
-                      @click.stop="deleteComment(child.id, $event)">
-                      删除
-                    </button>
-                  </div>
-                </div>
-
-                <div class="comment-content">
-                  <span>
-                    <a href="#" class="link">@{{ getUsernameById(child.parent_user_id) }}</a>
-                  </span>
-                  {{ child.content }}
-                </div>
-              </div>
-            </div>
-          </div>
+          <CommentItem
+            v-for="comment in comments"
+            :key="comment.id"
+            :comment="comment"
+            :user-store="userStore"
+            :replying-to="replyingTo"
+            :initial-reply-content="replyContent"
+            @reply="handleReplyComment"
+            @submit-reply="handleSubmitReply"
+            @cancel-reply="cancelReply"
+            @delete="handleDeleteComment"
+          />
         </div>
       </div>
 
@@ -207,6 +152,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
 import { useUserStore } from '../stores/user'
 import DeleteConfirm from '../components/DeleteConfirm.vue'
+import CommentItem from '../components/CommentItem.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -446,7 +392,7 @@ const submitComment = async () => {
   }
 }
 
-const replyToComment = (comment) => {
+const handleReplyComment = (comment) => {
   replyingTo.value = comment.id
   replyContent.value = ''
   nextTick(() => {
@@ -460,13 +406,13 @@ const cancelReply = () => {
   replyContent.value = ''
 }
 
-const submitReply = async (parentId) => {
-  if (!replyContent.value.trim()) return
+const handleSubmitReply = async (parentId, content) => {
+  if (!content.trim()) return
   
   try {
     const reply = await cssnippetStore.addComment({
       cssnippet_id: cssnippet.value.id,
-      content: replyContent.value,
+      content: content,
       parent_id: parentId
     })
     
@@ -484,11 +430,7 @@ const submitReply = async (parentId) => {
   }
 }
 
-const deleteComment = (commentId, event) => {
-  if (event) {
-    event.stopPropagation()
-    event.preventDefault()
-  }
+const handleDeleteComment = (commentId) => {
   deletingCommentId.value = commentId
   showDeleteConfirm.value = true
 }
@@ -551,33 +493,35 @@ const getUsernameById = (userId) => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #f5f5f5;
+  background-color: transparent;
   min-height: 100vh;
 }
 
 .loading, .not-found {
   text-align: center;
   padding: 50px;
-  color: #666;
+  color: #94a3b8;
 }
 
 .content-wrapper {
-  background-color: white;
+  background-color: rgba(16, 23, 42, 0.9);
   border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.1);
   overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 /* 头部信息 */
 .detail-header {
   padding: 30px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 .detail-header h1 {
   margin: 0 0 20px 0;
-  color: #333;
+  color: #38bdf8;
   font-size: 28px;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 .author-info {
@@ -592,6 +536,7 @@ const getUsernameById = (userId) => {
   border-radius: 50%;
   margin-right: 12px;
   object-fit: cover;
+  border: 2px solid rgba(56, 189, 248, 0.3);
 }
 
 .author-details {
@@ -601,13 +546,13 @@ const getUsernameById = (userId) => {
 
 .author-name {
   font-weight: 600;
-  color: #333;
+  color: #38bdf8;
   margin-bottom: 4px;
 }
 
 .publish-date {
   font-size: 14px;
-  color: #999;
+  color: #64748b;
 }
 
 .tags-container {
@@ -618,24 +563,26 @@ const getUsernameById = (userId) => {
 }
 
 .tag {
-  background-color: #f0f0f0;
+  background-color: rgba(56, 189, 248, 0.1);
   padding: 5px 12px;
   border-radius: 15px;
   font-size: 14px;
-  color: #555;
+  color: #38bdf8;
   cursor: pointer;
   transition: all 0.3s;
+  border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 .tag:hover {
-  background-color: #e0e0e0;
-  color: #333;
+  background-color: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
 .description {
   margin-bottom: 20px;
   line-height: 1.6;
-  color: #555;
+  color: #e2e8f0;
 }
 
 .action-buttons {
@@ -645,8 +592,9 @@ const getUsernameById = (userId) => {
 }
 
 .btn-outline {
-  background-color: white;
-  border: 1px solid #ddd;
+  background-color: rgba(16, 23, 42, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #e0e0e0;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
@@ -657,18 +605,21 @@ const getUsernameById = (userId) => {
 }
 
 .btn-outline:hover {
-  background-color: #f5f5f5;
+  background-color: rgba(56, 189, 248, 0.1);
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
 .btn-outline.active {
-  background-color: #e3f2fd;
-  border-color: #2196f3;
-  color: #2196f3;
+  background-color: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
 }
 
 .btn-primary {
-  background-color: #2196f3;
-  color: white;
+  background-color: #38bdf8;
+  color: #050508;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
@@ -677,16 +628,18 @@ const getUsernameById = (userId) => {
   align-items: center;
   gap: 5px;
   transition: all 0.3s;
+  font-weight: 500;
 }
 
 .btn-primary:hover {
-  background-color: #1976d2;
+  background-color: #60a5fa;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
 }
 
 .btn-danger {
-  background-color: #f44336;
-  color: white;
-  border: none;
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.5);
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
@@ -697,7 +650,9 @@ const getUsernameById = (userId) => {
 }
 
 .btn-danger:hover {
-  background-color: #d32f2f;
+  background-color: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
 }
 
 /* 代码和预览区域 */
@@ -725,25 +680,29 @@ const getUsernameById = (userId) => {
 .code-section h3,
 .preview-section h3 {
   margin-bottom: 15px;
-  color: #333;
+  color: #38bdf8;
+  font-size: 18px;
 }
 
 .code-section pre {
-  background-color: #f8f9fa;
+  background-color: rgba(16, 23, 42, 0.95);
   padding: 20px;
   border-radius: 8px;
   overflow-x: auto;
   margin: 0;
+  border: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 .code-section code {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.5;
+  color: #e2e8f0;
 }
 
 .preview-box {
-  border: 1px solid #ddd;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  background-color: rgba(26, 32, 44, 0.9);
   padding: 30px;
   min-height: 200px;
   display: flex;
@@ -766,12 +725,13 @@ const getUsernameById = (userId) => {
 /* 评论区域 */
 .comments-section {
   padding: 30px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 .comments-section h3 {
   margin-bottom: 20px;
-  color: #333;
+  color: #38bdf8;
+  font-size: 18px;
 }
 
 .comment-form {
@@ -781,40 +741,45 @@ const getUsernameById = (userId) => {
 .comment-form textarea {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(56, 189, 248, 0.5);
   border-radius: 4px;
   resize: vertical;
   font-family: inherit;
   font-size: 14px;
+  background-color: rgba(16, 23, 42, 0.9);
+  color: #e0e0e0;
 }
 
 .comment-form button {
   margin-top: 10px;
-  background-color: #2196f3;
-  color: white;
+  background-color: #38bdf8;
+  color: #050508;
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s;
+  font-weight: 500;
 }
 
 .comment-form button:hover:not(:disabled) {
-  background-color: #1976d2;
+  background-color: #60a5fa;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
 }
 
 .comment-form button:disabled {
-  background-color: #ccc;
+  background-color: #334155;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .login-prompt {
   margin-bottom: 30px;
-  color: #666;
+  color: #64748b;
 }
 
 .login-prompt .link {
-  color: #2196f3;
+  color: #38bdf8;
   text-decoration: none;
 }
 
@@ -823,20 +788,29 @@ const getUsernameById = (userId) => {
 }
 
 .comments-list {
-  space-y: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .comment-item {
-  margin-bottom: 20px;
   padding: 20px;
-  background-color: #f9f9f9;
+  background-color: rgba(26, 32, 44, 0.9);
   border-radius: 8px;
+  border-left: 4px solid #38bdf8;
+  transition: all 0.3s;
+}
+
+.comment-item:hover {
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.1);
+  transform: translateY(-2px);
 }
 
 .comment-item.child {
   margin-left: 40px;
   padding: 15px;
-  background-color: #f5f5f5;
+  background-color: rgba(16, 23, 42, 0.9);
+  border-left: 2px solid rgba(56, 189, 248, 0.5);
 }
 
 .comment-header {
@@ -851,13 +825,13 @@ const getUsernameById = (userId) => {
 
 .comment-author {
   font-weight: 600;
-  color: #333;
+  color: #38bdf8;
   margin-right: 10px;
 }
 
 .comment-time {
   font-size: 12px;
-  color: #999;
+  color: #64748b;
 }
 
 .comment-actions {
@@ -870,26 +844,30 @@ const getUsernameById = (userId) => {
   font-size: 12px;
   border: none;
   background: none;
-  color: #666;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .btn-sm:hover {
-  color: #333;
+  color: #38bdf8;
 }
 
 .text-danger {
-  color: #f44336;
+  color: #ef4444;
+}
+
+.text-danger:hover {
+  color: #f87171;
 }
 
 .comment-content {
   line-height: 1.6;
-  color: #333;
+  color: #e2e8f0;
 }
 
 .comment-content .link {
-  color: #2196f3;
+  color: #38bdf8;
   text-decoration: none;
 }
 
@@ -904,11 +882,13 @@ const getUsernameById = (userId) => {
 .reply-form textarea {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(56, 189, 248, 0.5);
   border-radius: 4px;
   resize: vertical;
   font-family: inherit;
   font-size: 14px;
+  background-color: rgba(16, 23, 42, 0.9);
+  color: #e0e0e0;
 }
 
 .reply-actions {
@@ -918,31 +898,34 @@ const getUsernameById = (userId) => {
 }
 
 .reply-actions .btn-sm.btn-primary {
-  background-color: #2196f3;
-  color: white;
+  background-color: #38bdf8;
+  color: #050508;
   padding: 4px 12px;
   border-radius: 4px;
+  font-weight: 500;
 }
 
 .reply-actions .btn-sm.btn-outline {
-  border: 1px solid #ddd;
+  border: 1px solid rgba(56, 189, 248, 0.5);
   padding: 4px 12px;
   border-radius: 4px;
+  color: #38bdf8;
 }
 
 .child-comments {
   margin-top: 15px;
 }
 
-/* 相关推荐 */
+/* 相关推荐区域 */
 .related-section {
   padding: 30px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 .related-section h3 {
   margin-bottom: 20px;
-  color: #333;
+  color: #38bdf8;
+  font-size: 18px;
 }
 
 .related-list {

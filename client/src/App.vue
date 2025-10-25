@@ -97,6 +97,23 @@ export default {
 </script>
 
 <style>
+/* 重置基础样式，确保页面占满整个视口 */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* 防止页面级滚动条 */
+}
+
+/* 应用容器设置为flex布局，垂直方向 */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+}
+
+/* 过渡动画样式 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s;
@@ -107,11 +124,39 @@ export default {
   opacity: 0;
 }
 
+/* 主体内容区域 */
+main.container {
+  flex: 1;
+  overflow-y: auto; /* 只在主体内容区域显示滚动条 */
+  padding-bottom: 20px; /* 适当的底部内边距 */
+  -ms-overflow-style: none; /* 隐藏IE/Edge滚动条 */
+  scrollbar-width: none; /* 隐藏Firefox滚动条 */
+}
+
+/* 隐藏Chrome等浏览器的滚动条 */
+main.container::-webkit-scrollbar {
+  display: none;
+}
+
+/* 页脚样式 */
 .footer {
-  background-color: #fff;
+  background-color: rgba(16, 23, 42, 0.95);
   padding: 20px 0;
-  margin-top: 40px;
   text-align: center;
-  border-top: 1px solid #eee;
+  border-top: 1px solid rgba(56, 189, 248, 0.3);
+  position: sticky;
+  bottom: 0;
+  z-index: 90;
+  backdrop-filter: blur(10px);
+}
+
+.footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #38bdf8, transparent);
 }
 </style>
