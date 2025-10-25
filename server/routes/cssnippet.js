@@ -168,22 +168,24 @@ router.get('/:id', (req, res) => {
 
 // 创建CSS代码段
 router.post('/', authMiddleware, (req, res) => {
-  const { title, description, cssCode, isPublic, tags } = req.body;
+  // 同时支持cssCode和cssContent参数，优先使用cssContent（前端实际发送的参数名）
+  const { title, description, cssCode, cssContent, isPublic, tags } = req.body;
+  const cssContentToUse = cssContent || cssCode;
   
   // 记录详细的错误信息以便调试
-  console.log('创建CSS代码段请求数据:', { title, description: description?.substring(0, 50) + '...', cssCodeLength: cssCode?.length, isPublic, tags: tags?.length || 0 });
+  console.log('创建CSS代码段请求数据:', { title, description: description?.substring(0, 50) + '...', cssContentLength: cssContentToUse?.length, isPublic, tags: tags?.length || 0 });
   console.log('用户信息:', req.user);
   
-  if (!title || !cssCode) {
+  if (!title || !cssContentToUse) {
     return res.status(400).json({ error: '标题和CSS内容不能为空' });
   }
   
-  if (cssCode.length > 10000) {
+  if (cssContentToUse.length > 10000) {
     return res.status(400).json({ error: 'CSS内容不能超过10000字符' });
   }
   
   // 过滤CSS代码
-  const filteredCSS = filterCSS(cssCode);
+  const filteredCSS = filterCSS(cssContentToUse);
   
   try {
     db.run(

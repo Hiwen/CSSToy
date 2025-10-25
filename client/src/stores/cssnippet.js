@@ -119,6 +119,11 @@ const cssnippetStore = defineStore('cssnippet', {
       }
     },
     
+    // 为兼容组件调用添加的别名方法
+    async deleteCssnippet(id) {
+      return this.delete(id)
+    },
+    
     async toggleLike(id) {
       try {
         // 先检查当前状态

@@ -16,7 +16,7 @@
         </div>
 
         <div class="tags-container">
-          <span v-for="tag in cssnippet.tags" :key="tag.id" class="tag" @click="handleTagClick(tag.name)">
+          <span v-for="tag in cssnippet.tags" :key="tag.id" class="tag" @click.stop="handleTagClick(tag.name, $event)">
             {{ tag.name }}
           </span>
         </div>
@@ -24,33 +24,33 @@
         <div class="description">{{ cssnippet.description }}</div>
 
         <div class="action-buttons">
-          <button class="btn btn-outline" @click="toggleLike" :class="{ 'active': cssnippet.isLiked }">
-            <span class="icon">{{ cssnippet.isLiked ? '❤️' : '🤍' }}</span>
-            <span>{{ cssnippet.likes_count }}</span>
-          </button>
+          <button class="btn btn-outline" @click.stop="toggleLike($event)" :class="{ 'active': cssnippet.isLiked }">
+              <span class="icon">{{ cssnippet.isLiked ? '❤️' : '🤍' }}</span>
+              <span>{{ cssnippet.likes_count }}</span>
+            </button>
 
-          <button class="btn btn-outline" @click="toggleFavorite" :class="{ 'active': cssnippet.isCollected }">
-            <span class="icon">{{ cssnippet.isCollected ? '⭐' : '☆' }}</span>
-            <span>{{ cssnippet.collections_count }}</span>
-          </button>
+          <button class="btn btn-outline" @click.stop="toggleFavorite($event)" :class="{ 'active': cssnippet.isCollected }">
+              <span class="icon">{{ cssnippet.isCollected ? '⭐' : '☆' }}</span>
+              <span>{{ cssnippet.collections_count }}</span>
+            </button>
 
-          <button class="btn btn-outline" @click="copyCode">
-            <span class="icon">📋</span>
-            <span>{{ copySuccess ? '已复制' : '复制代码' }}</span>
-          </button>
+          <button class="btn btn-outline" @click.stop="copyCode($event)">
+              <span class="icon">📋</span>
+              <span>{{ copySuccess ? '已复制' : '复制代码' }}</span>
+            </button>
 
-          <button class="btn btn-outline" @click="shareCode">
-            <span class="icon">🔗</span>
-            <span>分享</span>
-          </button>
+          <button class="btn btn-outline" @click.stop="shareCode($event)">
+              <span class="icon">🔗</span>
+              <span>分享</span>
+            </button>
 
           <template v-if="isOwner">
-            <button class="btn btn-primary" @click="editCode">
+            <button class="btn btn-primary" @click.stop="editCode($event)">
               <span class="icon">✏️</span>
               <span>编辑</span>
             </button>
 
-            <button class="btn btn-danger" @click="confirmDelete">
+            <button class="btn btn-danger" @click.stop="confirmDelete($event)">
               <span class="icon">🗑️</span>
               <span>删除</span>
             </button>
@@ -266,40 +266,97 @@ export default {
       }
     }
 
-    const toggleLike = async () => {
+    const toggleLike = async (event) => {
+      // 确保事件被完全阻止
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
+      }
+      
+      console.log('Toggle like clicked')
+      
       if (!userStore.isLoggedIn) {
-        router.push('/login')
+        console.log('Not logged in, redirecting to login page')
+        // 保存当前页面，以便登录后返回
+        localStorage.setItem('redirectAfterLogin', window.location.pathname)
+        router.push({
+          name: 'Login'
+        })
         return
       }
 
       try {
-        await cssnippetStore.toggleLike(cssnippet.value.id)
-        // 更新本地状态
-        cssnippet.value.isLiked = !cssnippet.value.isLiked
-        cssnippet.value.likes_count += cssnippet.value.isLiked ? 1 : -1
+        console.log('Calling cssnippetStore.toggleLike')
+        // 使用store返回的结果直接更新本地状态
+        const newLikeStatus = await cssnippetStore.toggleLike(cssnippet.value.id)
+        console.log('Toggle like result:', newLikeStatus)
+        
+        // 直接使用新状态更新UI
+        cssnippet.value.isLiked = newLikeStatus
+        // 计数已在store中更新，无需在这里再次更新
       } catch (err) {
         console.error('Failed to toggle like:', err)
+        // 出错时可以选择刷新整个数据
+        try {
+          const refreshedData = await cssnippetStore.fetchById(cssnippet.value.id)
+          cssnippet.value = { ...refreshedData }
+        } catch (refreshErr) {
+          console.error('Failed to refresh data:', refreshErr)
+        }
       }
     }
 
-    const toggleFavorite = async () => {
+    const toggleFavorite = async (event) => {
+      // 确保事件被完全阻止
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
+      }
+      
+      console.log('Toggle favorite clicked')
+      
       if (!userStore.isLoggedIn) {
-        router.push('/login')
+        console.log('Not logged in, redirecting to login page')
+        // 保存当前页面，以便登录后返回
+        localStorage.setItem('redirectAfterLogin', window.location.pathname)
+        router.push({
+          name: 'Login'
+        })
         return
       }
 
       try {
-        await cssnippetStore.toggleCollect(cssnippet.value.id)
-        // 更新本地状态
-        cssnippet.value.isCollected = !cssnippet.value.isCollected
-        cssnippet.value.collections_count += cssnippet.value.isCollected ? 1 : -1
+        console.log('Calling cssnippetStore.toggleCollect')
+        // 使用store返回的结果直接更新本地状态
+        const newCollectStatus = await cssnippetStore.toggleCollect(cssnippet.value.id)
+        console.log('Toggle favorite result:', newCollectStatus)
+        
+        // 直接使用新状态更新UI
+        cssnippet.value.isCollected = newCollectStatus
+        // 计数已在store中更新，无需在这里再次更新
       } catch (err) {
         console.error('Failed to toggle favorite:', err)
+        // 出错时可以选择刷新整个数据
+        try {
+          const refreshedData = await cssnippetStore.fetchById(cssnippet.value.id)
+          cssnippet.value = { ...refreshedData }
+        } catch (refreshErr) {
+          console.error('Failed to refresh data:', refreshErr)
+        }
       }
     }
 
-    const copyCode = async () => {
+    const copyCode = async (event) => {
+      // 确保事件被完全阻止
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
+      }
+      
+      console.log('Copy code clicked')
+      
       try {
+        console.log('Copying code to clipboard')
         await navigator.clipboard.writeText(cssnippet.value.css_content)
         copySuccess.value = true
         setTimeout(() => {
@@ -310,26 +367,53 @@ export default {
       }
     }
 
-    const shareCode = () => {
+    const shareCode = (event) => {
+      // 确保事件被完全阻止
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
+      }
+      
+      console.log('Share code clicked')
       const url = window.location.href
       // 这里可以实现分享功能，比如使用 Web Share API
       alert(`分享链接：${url}`)
     }
 
-    const editCode = () => {
+    const editCode = (event) => {
+      // 确保事件被完全阻止
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
+      }
+      
+      console.log('Edit code clicked')
       router.push(`/cssnippet/${cssnippet.value.id}/edit`)
     }
 
-    const confirmDelete = () => {
+    const confirmDelete = (event) => {
+      // 确保事件被完全阻止
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
+      }
+      
+      console.log('Confirm delete clicked')
       showDeleteConfirm.value = true
     }
 
     const deleteCode = async () => {
+      console.log('Delete code executing')
+      
       try {
-        await cssnippetStore.deleteCssnippet(cssnippet.value.id)
+        console.log('Calling cssnippetStore.deleteCssnippet')
+        const result = await cssnippetStore.deleteCssnippet(cssnippet.value.id)
+        console.log('Delete result:', result)
+        // 删除成功后重定向到首页
         router.push('/')
       } catch (err) {
-        console.error('Failed to delete cssnippet:', err)
+        console.error('Failed to delete code:', err)
+        alert('删除失败，请重试')
       } finally {
         showDeleteConfirm.value = false
       }
@@ -424,7 +508,14 @@ export default {
       return comment.user_id === userStore.user.id
     }
 
-    const handleTagClick = (tagName) => {
+    const handleTagClick = (tagName, event) => {
+      // 确保事件被完全阻止
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
+      }
+      
+      console.log('Tag clicked:', tagName)
       router.push(`/search?q=${encodeURIComponent(tagName)}&type=tag`)
     }
 

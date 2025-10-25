@@ -8,6 +8,12 @@ export const useUserStore = defineStore('user', {
     error: null
   }),
   
+  getters: {
+    isLoggedIn: (state) => {
+      return !!state.user
+    }
+  },
+  
   actions: {
     async login(email, password, remember) {
       this.loading = true
