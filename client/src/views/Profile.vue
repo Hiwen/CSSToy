@@ -365,9 +365,7 @@
                   查看代码段
                 </button>
                 
-                <button class="btn btn-sm btn-danger" @click="deleteComment(comment.id)">
-                  删除评论
-                </button>
+                <button class="btn btn-sm btn-danger" @click="() => confirmAndDeleteComment(comment.id)" type="button">删除评论</button>
               </div>
             </div>
           </div>
@@ -517,42 +515,31 @@
       </div>
     </div>
     
+    <!-- 删除确认弹窗已替换为浏览器confirm函数 -->
+    
     <!-- 删除确认弹窗 -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click="showDeleteConfirm = false">
-      <div class="modal-content card" @click.stop>
-        <h3>确认删除</h3>
-        <p>您确定要删除代码段「{{ deletingSnippet?.title }}」吗？此操作无法撤销。</p>
-        
-        <div class="modal-actions">
-          <button 
-            class="btn btn-danger"
-            @click="deleteSnippet"
-            :disabled="deleting"
-          >
-            {{ deleting ? '删除中...' : '确认删除' }}
-          </button>
-          
-          <button class="btn btn-outline" @click="showDeleteConfirm = false">
-            取消
-          </button>
-        </div>
-      </div>
-    </div>
+    <DeleteConfirm
+      :visible="showDeleteConfirm"
+      title="确认删除评论"
+      message="您确定要删除这条评论吗？此操作无法撤销。"
+      :loading="deleteLoading"
+      @confirm="handleConfirmDelete"
+      @cancel="handleCancelDelete"
+      @overlay-click="handleCancelDelete"
+    />
   </div>
 </template>
 
-<script>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '../stores/user'
-import { useCssnippetStore } from '../stores/cssnippet'
-
-export default {
-  name: 'Profile',
-  setup() {
-    const router = useRouter()
-    const userStore = useUserStore()
-    const cssnippetStore = useCssnippetStore()
+<script setup>
+   import { ref, reactive, onMounted } from 'vue'
+   import { useRouter } from 'vue-router'
+   import { useUserStore } from '../stores/user'
+   import { useCssnippetStore } from '../stores/cssnippet'
+   import DeleteConfirm from '../components/DeleteConfirm.vue'
+   
+   const router = useRouter();
+   const userStore = useUserStore();
+   const cssnippetStore = useCssnippetStore();
     
     const activeTab = ref('my-snippets')
     const loading = ref(false)
@@ -587,6 +574,8 @@ export default {
     const showEditProfile = ref(false)
     const showChangePassword = ref(false)
     const showDeleteConfirm = ref(false)
+    const currentDeleteCommentId = ref(null)
+    const deleteLoading = ref(false)
     
     // 表单数据
     const editProfileForm = reactive({
@@ -603,12 +592,10 @@ export default {
     // 操作状态
     const updatingProfile = ref(false)
     const changingPassword = ref(false)
-    const deleting = ref(false)
-    const deletingSnippet = ref(null)
     
     // 错误信息
-    const editProfileError = ref('')
-    const changePasswordError = ref('')
+    const editProfileError = ref('');
+    const changePasswordError = ref('');
     
     const switchTab = (tab) => {
       activeTab.value = tab
@@ -681,101 +668,115 @@ export default {
     
     const loadMyComments = async (page) => {
       try {
-        loading.value = true
-        myCommentsPage.value = page
-        const response = await userStore.getUserComments(page, pageSize.value)
-        myComments.value = response.results
-        myCommentsTotal.value = response.total
+        loading.value = true;
+        myCommentsPage.value = page;
+        const response = await userStore.getUserComments(page, pageSize.value);
+        myComments.value = response.results;
+        myCommentsTotal.value = response.total;
       } catch (err) {
-        console.error('Failed to load user comments:', err)
+        console.error('Failed to load user comments:', err);
       } finally {
-        loading.value = false
+        loading.value = false;
       }
-    }
+    };
     
     const handleUpdateProfile = async () => {
-      editProfileError.value = ''
-      
-      try {
-        updatingProfile.value = true
-        await userStore.updateProfile({
-          username: editProfileForm.username,
-          bio: editProfileForm.bio
-        })
+        editProfileError.value = '';
         
-        showEditProfile.value = false
-      } catch (err) {
-        editProfileError.value = userStore.error || '更新失败，请稍后重试'
-      } finally {
-        updatingProfile.value = false
-      }
-    }
+        try {
+          updatingProfile.value = true;
+          await userStore.updateProfile({
+            username: editProfileForm.username,
+            bio: editProfileForm.bio
+          });
+          
+          showEditProfile.value = false;
+        } catch (err) {
+          editProfileError.value = userStore.error || '更新失败，请稍后重试';
+        } finally {
+          updatingProfile.value = false;
+        }
+      };
     
     const handleChangePassword = async () => {
-      changePasswordError.value = ''
-      
-      if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
-        changePasswordError.value = '两次输入的新密码不一致'
-        return
-      }
-      
-      try {
-        changingPassword.value = true
-        await userStore.changePassword(
-          changePasswordForm.currentPassword,
-          changePasswordForm.newPassword
-        )
+        changePasswordError.value = '';
         
-        showChangePassword.value = false
-        // 清空表单
-        changePasswordForm.currentPassword = ''
-        changePasswordForm.newPassword = ''
-        changePasswordForm.confirmPassword = ''
-      } catch (err) {
-        changePasswordError.value = userStore.error || '修改密码失败，请检查当前密码是否正确'
-      } finally {
-        changingPassword.value = false
-      }
-    }
-    
-    const confirmDelete = (snippet) => {
-      deletingSnippet.value = snippet
-      showDeleteConfirm.value = true
-    }
-    
-    const deleteSnippet = async () => {
-      try {
-        deleting.value = true
-        await cssnippetStore.deleteCssnippet(deletingSnippet.value.id)
+        if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
+          changePasswordError.value = '两次输入的新密码不一致';
+          return;
+        }
         
-        // 重新加载列表
-        loadMySnippets(mySnippetsPage.value)
-        showDeleteConfirm.value = false
-      } catch (err) {
-        console.error('Failed to delete snippet:', err)
-      } finally {
-        deleting.value = false
-      }
-    }
+        try {
+          changingPassword.value = true;
+          await userStore.changePassword(
+            changePasswordForm.currentPassword,
+            changePasswordForm.newPassword
+          );
+          
+          showChangePassword.value = false;
+          // 清空表单
+          changePasswordForm.currentPassword = '';
+          changePasswordForm.newPassword = '';
+          changePasswordForm.confirmPassword = '';
+        } catch (err) {
+          changePasswordError.value = userStore.error || '修改密码失败，请检查当前密码是否正确';
+        } finally {
+          changingPassword.value = false;
+        }
+      };
     
-    const toggleVisibility = async (snippet) => {
-      try {
-        await cssnippetStore.toggleVisibility(snippet.id)
-        snippet.is_public = !snippet.is_public
-      } catch (err) {
-        console.error('Failed to toggle visibility:', err)
-      }
-    }
-    
-    const deleteComment = async (commentId) => {
-      try {
-        await cssnippetStore.deleteComment(commentId)
-        // 从列表中移除
-        myComments.value = myComments.value.filter(c => c.id !== commentId)
-      } catch (err) {
-        console.error('Failed to delete comment:', err)
-      }
-    }
+      const confirmDelete = async (snippet) => {
+        if (confirm(`您确定要删除代码段「${snippet.title}」吗？此操作无法撤销。`)) {
+          try {
+            await cssnippetStore.deleteCssnippet(snippet.id);
+            loadMySnippets(mySnippetsPage.value);
+          } catch (err) {
+            console.error('Failed to delete snippet:', err);
+            alert('删除失败: ' + (err.message || '未知错误'));
+          }
+        }
+      };
+
+      // 删除相关函数已简化为confirmAndDeleteComment
+      const toggleVisibility = async (snippet) => {
+        try {
+          await cssnippetStore.toggleVisibility(snippet.id);
+          snippet.is_public = !snippet.is_public;
+        } catch (err) {
+          console.error('Failed to toggle visibility:', err);
+        }
+      };
+
+      // 显示删除确认弹窗
+      const confirmAndDeleteComment = (commentId) => {
+        currentDeleteCommentId.value = commentId;
+        showDeleteConfirm.value = true;
+      };
+
+      // 确认删除评论
+      const handleConfirmDelete = async () => {
+        if (!currentDeleteCommentId.value) return;
+        
+        deleteLoading.value = true;
+        try {
+          await cssnippetStore.deleteComment(currentDeleteCommentId.value);
+          // 从列表中移除删除的评论
+          myComments.value = myComments.value.filter(c => c.id !== currentDeleteCommentId.value);
+          showDeleteConfirm.value = false;
+          currentDeleteCommentId.value = null;
+        } catch (err) {
+          console.error('删除评论失败:', err);
+          alert('删除失败: ' + (err.message || '未知错误'));
+        } finally {
+          deleteLoading.value = false;
+        }
+      };
+
+      // 取消删除
+      const handleCancelDelete = () => {
+        showDeleteConfirm.value = false;
+        currentDeleteCommentId.value = null;
+      };
     
     const goToDetail = (id) => {
       router.push(`/detail/${id}`)
@@ -786,9 +787,9 @@ export default {
     }
     
     const getPreviewStyle = (cssCode) => {
-      // 添加空值检查，防止调用undefined/null的substring方法
-      return { raw: cssCode ? cssCode.substring(0, 200) : '' }
-    }
+        // 添加空值检查，防止调用undefined/null的substring方法
+        return { raw: cssCode ? cssCode.substring(0, 200) : '' };
+      };
     
     const getAvatar = (userId) => {
       return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
@@ -816,54 +817,7 @@ export default {
       }
     })
     
-    return {
-      userStore,
-      activeTab,
-      loading,
-      userStats,
-      mySnippets,
-      mySnippetsPage,
-      mySnippetsTotal,
-      likedSnippets,
-      likedSnippetsPage,
-      likedSnippetsTotal,
-      favoritedSnippets,
-      favoritedSnippetsPage,
-      favoritedSnippetsTotal,
-      myComments,
-      myCommentsPage,
-      myCommentsTotal,
-      showEditProfile,
-      showChangePassword,
-      showDeleteConfirm,
-      editProfileForm,
-      changePasswordForm,
-      updatingProfile,
-      changingPassword,
-      deleting,
-      deletingSnippet,
-      editProfileError,
-      changePasswordError,
-      pageSize,
-      switchTab,
-      loadMySnippets,
-      loadLikedSnippets,
-      loadFavoritedSnippets,
-      loadMyComments,
-      handleUpdateProfile,
-      handleChangePassword,
-      confirmDelete,
-      deleteSnippet,
-      toggleVisibility,
-      deleteComment,
-      goToDetail,
-      editSnippet,
-      getPreviewStyle,
-      getAvatar,
-      formatDate
-    }
-  }
-}
+    // 在<script setup>中不需要显式return，所有顶层变量和函数会自动暴露给模板
 </script>
 
 <style scoped>

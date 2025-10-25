@@ -254,4 +254,46 @@ router.get('/collected-cssnippets', authMiddleware, (req, res) => {
   );
 });
 
+// 获取用户的评论
+router.get('/my-comments', authMiddleware, (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 12;
+  const offset = (page - 1) * limit;
+  
+  // 获取用户评论，包括对应的代码段信息
+  db.all(
+    `SELECT c.*, cs.title as cssnippet_title, cs.id as cssnippet_id, u.username, u.avatar 
+     FROM comments c 
+     JOIN cssnippets cs ON c.cssnippet_id = cs.id
+     JOIN users u ON c.user_id = u.id 
+     WHERE c.user_id = ? 
+     ORDER BY c.created_at DESC 
+     LIMIT ? OFFSET ?`,
+    [req.user.userId, limit, offset],
+    (err, comments) => {
+      if (err) {
+        return res.status(500).json({ error: '数据库错误' });
+      }
+      
+      // 获取总数
+      db.get('SELECT COUNT(*) as total FROM comments WHERE user_id = ?', 
+        [req.user.userId], (err, result) => {
+        if (err) {
+          return res.status(500).json({ error: '数据库错误' });
+        }
+        
+        res.json({
+          comments,
+          pagination: {
+            total: result.total,
+            page,
+            limit,
+            pages: Math.ceil(result.total / limit)
+          }
+        });
+      });
+    }
+  );
+});
+
 module.exports = router;

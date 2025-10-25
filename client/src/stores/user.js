@@ -206,11 +206,12 @@ export const useUserStore = defineStore('user', {
     // 获取用户的评论
     async getUserComments(page = 1, limit = 12) {
       try {
-        // 这里暂时返回空数据，因为后端可能没有专门的评论API
-        // 实际项目中应该有一个专门的API端点来获取用户的评论
+        const response = await axios.get('/api/users/my-comments', {
+          params: { page, limit }
+        })
         return {
-          results: [],
-          total: 0
+          results: response.data.comments || [],
+          total: response.data.pagination?.total || 0
         }
       } catch (error) {
         this.error = error.response?.data?.error || '获取评论失败'

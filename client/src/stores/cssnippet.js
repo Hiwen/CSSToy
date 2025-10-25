@@ -205,6 +205,40 @@ const cssnippetStore = defineStore('cssnippet', {
     // 获取代码段详情（与fetchById功能相同，为兼容组件调用）
     async getCssnippetDetail(id) {
       return this.fetchById(id)
+    },
+    
+    // 添加评论
+    async addComment(commentData) {
+      try {
+        const response = await axios.post('/api/comments', {
+          cssnippetId: commentData.cssnippet_id,
+          content: commentData.content,
+          parentId: commentData.parent_id
+        })
+        return response.data
+      } catch (error) {
+        throw error
+      }
+    },
+    
+    // 加载评论
+    async fetchComments(cssnippetId) {
+      try {
+        const response = await axios.get(`/api/comments/cssnippet/${cssnippetId}`)
+        return response.data
+      } catch (error) {
+        throw error
+      }
+    },
+    
+    // 删除评论
+    async deleteComment(commentId) {
+      try {
+        const response = await axios.delete(`/api/comments/${commentId}`)
+        return response.data
+      } catch (error) {
+        throw error
+      }
     }
   }
 })

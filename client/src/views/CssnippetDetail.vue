@@ -114,7 +114,7 @@
                   回复
                 </button>
                 <button v-if="isCommentOwner(comment)" class="btn btn-sm text-danger"
-                  @click="deleteComment(comment.id)">
+                  @click.stop="deleteComment(comment.id, $event)">
                   删除
                 </button>
               </div>
@@ -154,7 +154,7 @@
                       回复
                     </button>
                     <button v-if="isCommentOwner(child)" class="btn btn-sm text-danger"
-                      @click="deleteComment(child.id)">
+                      @click.stop="deleteComment(child.id, $event)">
                       删除
                     </button>
                   </div>
@@ -189,36 +189,34 @@
     <div v-else class="not-found">未找到代码段</div>
 
     <!-- 删除确认弹窗 -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click="showDeleteConfirm = false">
-      <div class="modal-content card" @click.stop>
-        <h3>确认删除</h3>
-        <p>您确定要删除这个 CSS 代码段吗？此操作无法撤销。</p>
-        <div class="modal-actions">
-          <button class="btn btn-danger" @click="deleteCode">确认删除</button>
-          <button class="btn btn-outline" @click="showDeleteConfirm = false">取消</button>
-        </div>
-      </div>
-    </div>
+    <DeleteConfirm
+      :visible="showDeleteConfirm"
+      :title="deletingCommentId ? '确认删除评论' : '确认删除代码段'"
+      :message="deletingCommentId ? '您确定要删除这条评论吗？此操作无法撤销。' : '您确定要删除这个 CSS 代码段吗？此操作无法撤销。'"
+      :loading="deleteLoading"
+      @confirm="confirmDeleteAction"
+      @cancel="handleCancelDelete"
+      @overlay-click="handleCancelDelete"
+    />
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue'
+<script setup>
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
 import { useUserStore } from '../stores/user'
+import DeleteConfirm from '../components/DeleteConfirm.vue'
 
-export default {
-  name: 'CssnippetDetail',
-  setup() {
-    const route = useRoute()
-    const router = useRouter()
-    const cssnippetStore = useCssnippetStore()
-    const userStore = useUserStore()
+const route = useRoute()
+const router = useRouter()
+const cssnippetStore = useCssnippetStore()
+const userStore = useUserStore()
 
     const cssnippet = ref(null)
     const loading = ref(true)
     const comments = ref([])
+    const deletingCommentId = ref(null)
     const relatedSnippets = ref([])
     const htmlTemplates = ref([
       { id: 1, name: '按钮', preview_html: '<button>按钮</button>' },
@@ -229,6 +227,7 @@ export default {
     const selectedTemplate = ref(1)
     const copySuccess = ref(false)
     const showDeleteConfirm = ref(false)
+    const deleteLoading = ref(false)
 
     // 评论相关
     const newComment = ref({ content: '' })
@@ -256,8 +255,8 @@ export default {
         loading.value = true
         const data = await cssnippetStore.getCssnippetDetail(id)
         cssnippet.value = data
-        // 暂时清空评论和相关代码段，因为API不返回这些数据
-        comments.value = []
+        // 加载评论数据
+        comments.value = await cssnippetStore.fetchComments(id)
         relatedSnippets.value = []
       } catch (err) {
         console.error('Failed to load cssnippet detail:', err)
@@ -399,6 +398,7 @@ export default {
       }
       
       console.log('Confirm delete clicked')
+      deletingCommentId.value = null // 确保这是删除代码段，不是评论
       showDeleteConfirm.value = true
     }
 
@@ -414,8 +414,46 @@ export default {
       } catch (err) {
         console.error('Failed to delete code:', err)
         alert('删除失败，请重试')
+      }
+    }
+
+    const handleCancelDelete = () => {
+      showDeleteConfirm.value = false
+      deletingCommentId.value = null
+      deleteLoading.value = false
+    }
+
+    const confirmDeleteAction = async () => {
+      deleteLoading.value = true
+      try {
+        if (deletingCommentId.value) {
+          // 删除评论
+          await cssnippetStore.deleteComment(deletingCommentId.value)
+          // 从评论树中移除
+          const removeComment = (commentsList) => {
+            for (let i = 0; i < commentsList.length; i++) {
+              if (commentsList[i].id === deletingCommentId.value) {
+                commentsList.splice(i, 1)
+                return true
+              }
+              if (commentsList[i].children && removeComment(commentsList[i].children)) {
+                return true
+              }
+            }
+            return false
+          }
+          removeComment(comments.value)
+        } else {
+          // 删除代码段
+          await deleteCode()
+        }
+      } catch (err) {
+        console.error('Failed to delete:', err)
+        alert('删除失败，请重试')
       } finally {
         showDeleteConfirm.value = false
+        deletingCommentId.value = null
+        deleteLoading.value = false
       }
     }
 
@@ -480,27 +518,23 @@ export default {
       replyContent.value = ''
     }
 
-    const deleteComment = async (commentId) => {
-      try {
-        await cssnippetStore.deleteComment(commentId)
-        // 从评论树中移除
-        const removeComment = (commentsList) => {
-          for (let i = 0; i < commentsList.length; i++) {
-            if (commentsList[i].id === commentId) {
-              commentsList.splice(i, 1)
-              return true
-            }
-            if (commentsList[i].children && removeComment(commentsList[i].children)) {
-              return true
-            }
-          }
-          return false
-        }
-
-        removeComment(comments.value)
-      } catch (err) {
-        console.error('Failed to delete comment:', err)
+    const deleteComment = (commentId, event) => {
+      // 确保事件被完全阻止
+      if (event) {
+        event.stopPropagation()
+        event.preventDefault()
       }
+      
+      console.log('Delete comment clicked for comment ID:', commentId)
+      
+      // 使用setTimeout确保状态更新能正确触发
+      setTimeout(() => {
+        console.log('Setting deletingCommentId and showDeleteConfirm')
+        deletingCommentId.value = commentId
+        showDeleteConfirm.value = true
+        
+        console.log('Values set - showDeleteConfirm:', showDeleteConfirm.value)
+      }, 0)
     }
 
     const isCommentOwner = (comment) => {
@@ -561,43 +595,7 @@ export default {
       loadCssnippetDetail()
     })
 
-    return {
-      cssnippet,
-      loading,
-      comments,
-      relatedSnippets,
-      htmlTemplates,
-      selectedTemplate,
-      copySuccess,
-      showDeleteConfirm,
-      newComment,
-      replyingTo,
-      replyContent,
-      userStore,
-      isOwner,
-      cssCodeStyles,
-      toggleLike,
-      toggleFavorite,
-      copyCode,
-      shareCode,
-      editCode,
-      confirmDelete,
-      deleteCode,
-      selectTemplate,
-      submitComment,
-      replyToComment,
-      submitReply,
-      cancelReply,
-      deleteComment,
-      isCommentOwner,
-      handleTagClick,
-      goToDetail,
-      getAvatar,
-      formatDate,
-      getUsernameById
-    }
-  }
-}
+
 </script>
 
 <style scoped>
