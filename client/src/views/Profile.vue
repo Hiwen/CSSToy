@@ -1053,52 +1053,78 @@ import CommentItem from '../components/CommentItem.vue'
   border-radius: 4px;
   cursor: pointer;
   border: 1px solid rgba(56, 189, 248, 0.3);
-  background-color: transparent;
+  background-color: rgba(56, 189, 248, 0.1);
   color: #38bdf8;
   transition: all 0.3s;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-sm:hover {
-  background-color: rgba(56, 189, 248, 0.1);
+  background-color: rgba(56, 189, 248, 0.2);
   border-color: rgba(56, 189, 248, 0.6);
   color: #7dd3fc;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+  cursor: pointer;
+}
+
+.snippet-actions {
+  display: flex;
+  gap: 10px;
+  position: relative;
+  z-index: 10;
+}
+
+.snippet-actions .btn {
+  pointer-events: auto;
+}
+
+.btn-primary {
+  background-color: #38bdf8;
+  color: white;
+  border-color: #38bdf8;
+}
+
+.btn-primary:hover {
+  background-color: #0ea5e9;
+  border-color: #0ea5e9;
+  color: white;
 }
 
 .btn-danger {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.3);
+  background-color: rgba(239, 68, 68, 0.9);
+  color: white;
+  border-color: rgba(239, 68, 68, 0.9);
 }
 
 .btn-danger:hover {
-  background-color: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #fca5a5;
+  background-color: #dc2626;
+  border-color: #dc2626;
+  color: white;
 }
 
 .btn-secondary {
-  background-color: rgba(148, 163, 184, 0.1);
-  color: #94a3b8;
-  border-color: rgba(148, 163, 184, 0.3);
+  background-color: rgba(148, 163, 184, 0.9);
+  color: white;
+  border-color: rgba(148, 163, 184, 0.9);
 }
 
 .btn-secondary:hover {
-  background-color: rgba(148, 163, 184, 0.2);
-  border-color: rgba(148, 163, 184, 0.5);
-  color: #cbd5e1;
+  background-color: #64748b;
+  border-color: #64748b;
+  color: white;
 }
 
 .btn-success {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: #4ade80;
-  border-color: rgba(34, 197, 94, 0.3);
+  background-color: rgba(34, 197, 94, 0.9);
+  color: white;
+  border-color: rgba(34, 197, 94, 0.9);
 }
 
 .btn-success:hover {
-  background-color: rgba(34, 197, 94, 0.2);
-  border-color: rgba(34, 197, 94, 0.5);
-  color: #86efac;
+  background-color: #15803d;
+  border-color: #15803d;
+  color: white;
 }
 
 /* 评论列表 */

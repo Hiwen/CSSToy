@@ -5,6 +5,9 @@ import App from './App.vue'
 import router from './router'
 import './assets/main.css'
 
+// 配置axios基础URL
+axios.defaults.baseURL = 'http://localhost:3000'
+
 // 检查localStorage中的token并设置axios默认请求头
 const token = localStorage.getItem('token')
 if (token) {

@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
-// 配置axios基础URL
-axios.defaults.baseURL = 'http://localhost:3000'
 
 const cssnippetStore = defineStore('cssnippet', {
   state: () => ({

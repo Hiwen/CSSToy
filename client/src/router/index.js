@@ -75,8 +75,20 @@ const router = createRouter({
 })
 
 // 全局导航守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
+  const token = localStorage.getItem('token')
+  
+  // 如果有token但用户信息还未加载，先尝试恢复登录状态
+  if (token && !userStore.user) {
+    try {
+      await userStore.fetchUserInfo()
+    } catch (error) {
+      // token无效或过期，清除token
+      localStorage.removeItem('token')
+    }
+  }
+  
   const isAuthenticated = !!userStore.user
   
   // 需要认证的页面
