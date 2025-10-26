@@ -105,6 +105,7 @@ export default {
   gap: 10px;
   margin-top: 30px;
   padding: 20px 0;
+  flex-wrap: nowrap;
 }
 
 .pagination-button {
@@ -115,6 +116,8 @@ export default {
   cursor: pointer;
   transition: all 0.3s;
   color: #38bdf8;
+  width: 100px;
+  text-align: center;
 }
 
 .pagination-button:hover:not(:disabled) {
@@ -146,22 +149,70 @@ export default {
   text-align: center;
 }
 
-/* 响应式设计 */
+/* 响应式设计优化 */
 @media (max-width: 768px) {
   .pagination {
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    gap: 10px;
     padding: 15px 0;
+    justify-content: center;
+    max-width: 100%;
   }
   
   .pagination-button {
+    width: 90px;
+    font-size: 14px;
+    padding: 8px 12px;
+    flex: none;
+  }
+  
+  .pagination-info {
     flex: 1;
-    min-width: 80px;
+    min-width: 120px;
+    order: 0;
+    width: auto;
+    max-width: 150px;
+  }
+}
+
+/* 在中等窄屏上的优化 */
+@media (max-width: 600px) {
+  .pagination {
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .pagination-button {
+    width: 85px;
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+  
+  .pagination-info {
+    font-size: 13px;
+    min-width: 100px;
+    max-width: 130px;
+  }
+}
+
+/* 在极窄屏幕上才使用垂直布局 */
+@media (max-width: 420px) {
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
   }
   
   .pagination-info {
     order: 2;
     width: 100%;
+    margin-top: 8px;
+    text-align: center;
+    max-width: none;
+  }
+  
+  .pagination-button {
+    width: 85px;
+    margin: 0 5px;
   }
 }
 </style>

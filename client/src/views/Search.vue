@@ -621,13 +621,65 @@ import Pagination from '../components/Pagination.vue'
   }
   
   .pagination {
-    flex-direction: column;
+    flex-wrap: nowrap;
     gap: 10px;
+    padding: 20px 15px;
+    justify-content: center;
+    max-width: 100%;
   }
   
   .pagination-button {
-    width: 100%;
-    max-width: 200px;
+    width: 90px;
+    font-size: 14px;
+    padding: 8px 12px;
+    flex: none;
+  }
+  
+  .pagination-info {
+    flex: 1;
+    min-width: 120px;
+    max-width: 150px;
+  }
+  
+  /* 在中等窄屏上的优化 */
+  @media (max-width: 600px) {
+    .pagination {
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .pagination-button {
+      width: 85px;
+      font-size: 13px;
+      padding: 7px 10px;
+    }
+    
+    .pagination-info {
+      font-size: 13px;
+      min-width: 100px;
+      max-width: 130px;
+    }
+  }
+  
+  /* 极窄屏幕下的适配 */
+  @media (max-width: 420px) {
+    .pagination {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .pagination-info {
+      order: 2;
+      width: 100%;
+      margin-top: 8px;
+      text-align: center;
+      max-width: none;
+    }
+    
+    .pagination-button {
+      width: 85px;
+      margin: 0 5px;
+    }
   }
 }
 </style>
