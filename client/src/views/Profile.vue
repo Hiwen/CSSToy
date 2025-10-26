@@ -1,5 +1,5 @@
 <template>
-  <div class="profile-container">
+  <div class="page-container">
     <div v-if="!userStore.isLoggedIn" class="not-logged-in">
       <h2>请先登录</h2>
       <p>登录后可以查看和管理您的个人信息和CSS代码段</p>
@@ -54,7 +54,7 @@
       </div>
       
       <!-- 内容标签页 -->
-      <div class="profile-tabs">
+      <div class="page-tabs">
         <button 
           class="tab-button" 
           :class="{ active: activeTab === 'my-snippets' }"
@@ -121,26 +121,12 @@
           </div>
           
           <!-- 分页 -->
-          <div v-if="mySnippets.length > 0" class="pagination">
-            <button 
-              class="pagination-button" 
-              :disabled="mySnippetsPage === 1"
-              @click="loadMySnippets(mySnippetsPage - 1)"
-            >
-              上一页
-            </button>
-            
-            <span class="pagination-info">
-              第 {{ mySnippetsPage }} 页，共 {{ Math.ceil(mySnippetsTotal / pageSize) }} 页
-            </span>
-            
-            <button 
-              class="pagination-button" 
-              :disabled="mySnippetsPage >= Math.ceil(mySnippetsTotal / pageSize)"
-              @click="loadMySnippets(mySnippetsPage + 1)"
-            >
-              下一页
-            </button>
+          <div v-if="mySnippets.length > 0">
+            <Pagination 
+              :current-page="mySnippetsPage"
+              :total-pages="Math.ceil(mySnippetsTotal / pageSize)"
+              @page-change="loadMySnippets"
+            />
           </div>
         </div>
         
@@ -170,26 +156,12 @@
           </div>
           
           <!-- 分页 -->
-          <div v-if="likedSnippets.length > 0" class="pagination">
-            <button 
-              class="pagination-button" 
-              :disabled="likedSnippetsPage === 1"
-              @click="loadLikedSnippets(likedSnippetsPage - 1)"
-            >
-              上一页
-            </button>
-            
-            <span class="pagination-info">
-              第 {{ likedSnippetsPage }} 页，共 {{ Math.ceil(likedSnippetsTotal / pageSize) }} 页
-            </span>
-            
-            <button 
-              class="pagination-button" 
-              :disabled="likedSnippetsPage >= Math.ceil(likedSnippetsTotal / pageSize)"
-              @click="loadLikedSnippets(likedSnippetsPage + 1)"
-            >
-              下一页
-            </button>
+          <div v-if="likedSnippets.length > 0">
+            <Pagination 
+              :current-page="likedSnippetsPage"
+              :total-pages="Math.ceil(likedSnippetsTotal / pageSize)"
+              @page-change="loadLikedSnippets"
+            />
           </div>
         </div>
         
@@ -219,26 +191,12 @@
           </div>
           
           <!-- 分页 -->
-          <div v-if="favoritedSnippets.length > 0" class="pagination">
-            <button 
-              class="pagination-button" 
-              :disabled="favoritedSnippetsPage === 1"
-              @click="loadFavoritedSnippets(favoritedSnippetsPage - 1)"
-            >
-              上一页
-            </button>
-            
-            <span class="pagination-info">
-              第 {{ favoritedSnippetsPage }} 页，共 {{ Math.ceil(favoritedSnippetsTotal / pageSize) }} 页
-            </span>
-            
-            <button 
-              class="pagination-button" 
-              :disabled="favoritedSnippetsPage >= Math.ceil(favoritedSnippetsTotal / pageSize)"
-              @click="loadFavoritedSnippets(favoritedSnippetsPage + 1)"
-            >
-              下一页
-            </button>
+          <div v-if="favoritedSnippets.length > 0">
+            <Pagination 
+              :current-page="favoritedSnippetsPage"
+              :total-pages="Math.ceil(favoritedSnippetsTotal / pageSize)"
+              @page-change="loadFavoritedSnippets"
+            />
           </div>
         </div>
         
@@ -275,26 +233,12 @@
           </div>
           
           <!-- 分页 -->
-          <div v-if="myComments.length > 0" class="pagination">
-            <button 
-              class="pagination-button" 
-              :disabled="myCommentsPage === 1"
-              @click="loadMyComments(myCommentsPage - 1)"
-            >
-              上一页
-            </button>
-            
-            <span class="pagination-info">
-              第 {{ myCommentsPage }} 页，共 {{ Math.ceil(myCommentsTotal / pageSize) }} 页
-            </span>
-            
-            <button 
-              class="pagination-button" 
-              :disabled="myCommentsPage >= Math.ceil(myCommentsTotal / pageSize)"
-              @click="loadMyComments(myCommentsPage + 1)"
-            >
-              下一页
-            </button>
+          <div v-if="myComments.length > 0">
+            <Pagination 
+              :current-page="myCommentsPage"
+              :total-pages="Math.ceil(myCommentsTotal / pageSize)"
+              @page-change="loadMyComments"
+            />
           </div>
         </div>
       </div>
@@ -437,6 +381,7 @@ import { useCSSnippetStore } from '../stores/cssnippet'
 import SnippetCard from '../components/SnippetCard.vue'
 import DeleteConfirm from '../components/DeleteConfirm.vue'
 import CommentItem from '../components/CommentItem.vue'
+import Pagination from '../components/Pagination.vue'
    
    const router = useRouter();
    const userStore = useUserStore()
@@ -730,10 +675,26 @@ import CommentItem from '../components/CommentItem.vue'
 </script>
 
 <style scoped>
-.profile-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+/* 使用全局通用样式，保留特定页面的额外样式 */
+.profile-header {
+  background-color: rgba(16, 23, 42, 0.95);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.not-logged-in {
+  text-align: center;
+  padding: 60px 20px;
+  color: #fff;
+}
+
+.not-logged-in h2 {
+  margin-bottom: 15px;
+}
+
+.not-logged-in p {
+  margin-bottom: 20px;
+  color: #94a3b8;
 }
 
 .not-logged-in {
@@ -1303,7 +1264,8 @@ import CommentItem from '../components/CommentItem.vue'
     justify-content: center;
   }
   
-  .profile-tabs {
+  /* 响应式样式覆盖 */
+  .page-tabs {
     overflow-x: auto;
     padding: 0;
   }
@@ -1313,7 +1275,7 @@ import CommentItem from '../components/CommentItem.vue'
     white-space: nowrap;
   }
   
-  .snippets-grid {
+  .content-grid {
     grid-template-columns: 1fr;
     padding: 15px;
     gap: 20px;

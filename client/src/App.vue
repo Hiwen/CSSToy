@@ -128,7 +128,7 @@ html, body {
 main.container {
   flex: 1;
   overflow-y: auto; /* 只在主体内容区域显示滚动条 */
-  padding-bottom: 20px; /* 适当的底部内边距 */
+  padding-bottom: 0; /* 移除底部内边距 */
   -ms-overflow-style: none; /* 隐藏IE/Edge滚动条 */
   scrollbar-width: none; /* 隐藏Firefox滚动条 */
 }

@@ -156,26 +156,12 @@
         </div>
         
         <!-- 分页 -->
-        <div v-if="snippets.length > 0" class="pagination">
-          <button 
-            class="pagination-button" 
-            :disabled="currentPage === 1"
-            @click="loadSnippets(currentPage - 1)"
-          >
-            上一页
-          </button>
-          
-          <span class="pagination-info">
-            第 {{ currentPage }} 页，共 {{ Math.ceil(totalSnippets / pageSize) }} 页
-          </span>
-          
-          <button 
-            class="pagination-button" 
-            :disabled="currentPage >= Math.ceil(totalSnippets / pageSize)"
-            @click="loadSnippets(currentPage + 1)"
-          >
-            下一页
-          </button>
+        <div v-if="snippets.length > 0">
+          <Pagination 
+            :current-page="currentPage"
+            :total-pages="Math.ceil(totalSnippets / pageSize)"
+            @page-change="loadSnippets"
+          />
         </div>
       </div>
       
@@ -225,9 +211,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
+import Pagination from '../components/Pagination.vue'
     const router = useRouter()
     const cssnippetStore = useCssnippetStore()
     
@@ -808,37 +795,6 @@ import { useCssnippetStore } from '../stores/cssnippet'
 }
 
 /* 分页 */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  padding: 30px;
-}
-
-.pagination-button {
-  padding: 8px 16px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.pagination-button:hover:not(:disabled) {
-  background-color: #e9ecef;
-}
-
-.pagination-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pagination-info {
-  font-size: 14px;
-  color: #666;
-}
-
 /* 标签推荐 */
 .tag-recommendations {
   background-color: white;

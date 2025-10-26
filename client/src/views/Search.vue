@@ -163,26 +163,12 @@
       </div>
       
       <!-- 分页控件 -->
-      <div v-if="(results || []).length > 0" class="pagination">
-        <button 
-          class="pagination-button" 
-          :disabled="currentPage === 1"
-          @click="goToPage(currentPage - 1)"
-        >
-          上一页
-        </button>
-        
-        <span class="pagination-info">
-          第 {{ currentPage }} 页，共 {{ totalPages }} 页
-        </span>
-        
-        <button 
-          class="pagination-button" 
-          :disabled="currentPage === totalPages"
-          @click="goToPage(currentPage + 1)"
-        >
-          下一页
-        </button>
+      <div v-if="(results || []).length > 0">
+        <Pagination 
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          @page-change="goToPage"
+        />
       </div>
     </div>
   </div>
@@ -193,6 +179,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
 import CssPreview from '../components/CssPreview.vue'
+import Pagination from '../components/Pagination.vue'
     const route = useRoute()
     const router = useRouter()
     const cssnippetStore = useCssnippetStore()
@@ -615,38 +602,6 @@ import CssPreview from '../components/CssPreview.vue'
 .tags-list .tag:hover {
   background-color: #1976d2;
   color: white;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  margin-top: 40px;
-}
-
-.pagination-button {
-  padding: 8px 16px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.pagination-button:hover:not(:disabled) {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
-}
-
-.pagination-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pagination-info {
-  font-size: 14px;
-  color: #666;
 }
 
 /* 响应式设计 */
