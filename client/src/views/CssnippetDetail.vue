@@ -797,20 +797,29 @@ const getUsernameById = (userId) => {
   padding: 20px;
   background-color: rgba(26, 32, 44, 0.9);
   border-radius: 8px;
-  border-left: 4px solid #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.1);
   transition: all 0.3s;
 }
 
 .comment-item:hover {
-  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.1);
+  border-color: #38bdf8;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.2);
   transform: translateY(-2px);
 }
 
 .comment-item.child {
-  margin-left: 40px;
+  margin-left: 50px;
+  margin-top: 10px;
   padding: 15px;
-  background-color: rgba(16, 23, 42, 0.9);
-  border-left: 2px solid rgba(56, 189, 248, 0.5);
+  background-color: rgba(26, 32, 44, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  box-shadow: 0 1px 6px rgba(56, 189, 248, 0.05);
+}
+
+.comment-item.child:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
 }
 
 .comment-header {
