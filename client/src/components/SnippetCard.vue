@@ -170,11 +170,6 @@ const handleViewClick = () => {
   height: 100%;
 }
 
-.cssnippet-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
 .cssnippet-preview {
   width: 100%;
   height: 150px;

@@ -1,3 +1,45 @@
+:root {
+  /* 主题颜色 */
+  --primary-color: #38bdf8;
+  --primary-hover: #0ea5e9;
+  --text-primary: #e2e8f0;
+  --text-secondary: #64748b;
+  --bg-primary: rgba(16, 23, 42, 0.9);
+  --bg-secondary: rgba(26, 32, 44, 0.9);
+  --border-color: rgba(56, 189, 248, 0.2);
+  --border-color-light: rgba(56, 189, 248, 0.1);
+  --border-color-hover: #38bdf8;
+  --data-item-border-radius: 8px;
+  --data-item-border-radius-sm: 4px;
+  --shadow-sm: 0 2px 8px rgba(56, 189, 248, 0.1);
+  --shadow-md: 0 4px 15px rgba(56, 189, 248, 0.1);
+  --shadow-lg: 0 8px 25px rgba(56, 189, 248, 0.2);
+  --transition: all 0.3s ease;
+  
+  /* 评论项专用变量 */
+  --comment-bg: rgba(26, 32, 44, 0.9);
+  --comment-padding: 20px;
+  --data-item-border: 1px solid var(--border-color);
+  --data-item-border-hover: var(--border-color-hover);
+  --data-item-shadow: 0 2px 15px rgba(56, 189, 248, 0.1);
+  --data-item-shadow-hover: 0 4px 20px rgba(56, 189, 248, 0.2);
+  
+  /* 子评论专用变量 */
+  --child-comment-bg: rgba(26, 32, 44, 0.9);
+  --child-comment-padding: 15px;
+  --child-comment-margin-left: 50px;
+  --child-comment-margin-top: 10px;
+  --child-comment-border: 1px solid var(--border-color-light);
+  --child-comment-border-hover: rgba(56, 189, 248, 0.5);
+  --child-comment-shadow: 0 1px 6px rgba(56, 189, 248, 0.05);
+  --child-comment-shadow-hover: 0 4px 15px rgba(56, 189, 248, 0.15);
+  
+  /* 响应式断点 */
+  --breakpoint-mobile: 480px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+}
+
 /* 全局样式重置 */
 * {
   margin: 0;
@@ -200,13 +242,19 @@ body::after {
 
 /* CSS代码段预览卡片 */
 .cssnippet-card {
-  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  
+  padding: var(--comment-padding);
+  border-radius: var(--data-item-border-radius);
+  border: var(--data-item-border);
+  box-shadow: var(--data-item-shadow);
+  transition: var(--transition);
 }
 
 .cssnippet-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(56, 189, 248, 0.3);
-  border-color: rgba(56, 189, 248, 0.5);
+  
+  border-color: var(--data-item-border-hover);
+  box-shadow: var(--data-item-shadow-hover);
+  transform: translateY(-2px);
 }
 
 /* 代码段网格布局 */
@@ -385,18 +433,17 @@ body::after {
 }
 
 .comment-item {
-  padding: 15px;
-  background-color: rgba(16, 23, 42, 0.8);
-  border-radius: 4px;
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.1);
-  transition: all 0.3s ease;
+  padding: var(--comment-padding, 15px);
+  border-radius: var(--data-item-border-radius, var(--data-item-border-radius-sm));
+  border: var(--data-item-border);
+  box-shadow: var(--data-item-shadow, 0 2px 8px rgba(56, 189, 248, 0.05));
+  transition: var(--transition);
 }
 
 .comment-item:hover {
   background-color: rgba(16, 23, 42, 0.7);
-  border-color: #38bdf8;
-  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.1);
+  border-color: var(--data-item-border-hover);
+  box-shadow: var(--data-item-shadow-hover, 0 4px 15px rgba(56, 189, 248, 0.1));
 }
 
 .comment-header {

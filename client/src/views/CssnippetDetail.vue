@@ -794,32 +794,31 @@ const getUsernameById = (userId) => {
 }
 
 .comment-item {
-  padding: 20px;
-  background-color: rgba(26, 32, 44, 0.9);
-  border-radius: 8px;
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.1);
-  transition: all 0.3s;
+  padding: var(--comment-padding);
+  border-radius: var(--data-item-border-radius);
+  border: var(--data-item-border);
+  box-shadow: var(--data-item-shadow);
+  transition: var(--transition);
 }
 
 .comment-item:hover {
-  border-color: #38bdf8;
-  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.2);
+  border-color: var(--data-item-border-hover);
+  box-shadow: var(--data-item-shadow-hover);
   transform: translateY(-2px);
 }
 
 .comment-item.child {
-  margin-left: 50px;
-  margin-top: 10px;
-  padding: 15px;
-  background-color: rgba(26, 32, 44, 0.9);
-  border: 1px solid rgba(56, 189, 248, 0.1);
-  box-shadow: 0 1px 6px rgba(56, 189, 248, 0.05);
+  margin-left: var(--child-comment-margin-left);
+  margin-top: var(--child-comment-margin-top);
+  padding: var(--child-comment-padding);
+  background-color: var(--child-comment-bg);
+  border: var(--child-comment-border);
+  box-shadow: var(--child-comment-shadow);
 }
 
 .comment-item.child:hover {
-  border-color: rgba(56, 189, 248, 0.5);
-  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
+  border-color: var(--child-comment-border-hover);
+  box-shadow: var(--child-comment-shadow-hover);
 }
 
 .comment-header {
