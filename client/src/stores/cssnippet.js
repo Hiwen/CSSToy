@@ -108,6 +108,16 @@ const cssnippetStore = defineStore('cssnippet', {
       
       try {
         const response = await axios.delete(`/api/cssnippets/${id}`)
+        
+        // 从本地store中移除删除的代码段
+        this.popular = this.popular.filter(item => item.id !== id)
+        this.latest = this.latest.filter(item => item.id !== id)
+        
+        // 如果当前正在查看的是被删除的代码段，清空current
+        if (this.current && this.current.id === id) {
+          this.current = null
+        }
+        
         return response.data
       } catch (error) {
         this.error = error.response?.data?.error || '删除代码段失败'
@@ -382,6 +392,51 @@ const cssnippetStore = defineStore('cssnippet', {
         return response.data
       } catch (error) {
         throw error
+      }
+    },
+    
+    // 切换代码段可见性（公开/私密）
+    async toggleVisibility(id) {
+      this.loading = true
+      
+      try {
+        // 先获取当前状态
+        let currentVisibility = null
+        
+        // 从列表中查找当前状态
+        for (const list of [this.popular, this.latest]) {
+          const item = list.find(i => i.id === id)
+          if (item) {
+            currentVisibility = item.is_public
+            break
+          }
+        }
+        
+        // 如果列表中没有，从详情中查找
+        if (currentVisibility === null && this.current && this.current.id === id) {
+          currentVisibility = this.current.is_public
+        }
+        
+        // 执行API调用
+        const response = await axios.patch(`/api/cssnippets/${id}/visibility`)
+        
+        // 计算新的可见性状态
+        const newVisibility = currentVisibility !== null ? !currentVisibility : !response.data.is_public
+        
+        // 更新详情中的状态
+        if (this.current && this.current.id === id) {
+          this.current.is_public = newVisibility
+        }
+        
+        // 更新列表中的数据
+        this.updateListEntry(id, 'is_public', newVisibility)
+        
+        return response.data
+      } catch (error) {
+        // 移除对store error状态的设置，让组件通过Notification显示错误
+        throw error
+      } finally {
+        this.loading = false
       }
     }
   }

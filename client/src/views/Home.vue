@@ -31,6 +31,7 @@
         :is-owner="cssnippet.user_id === userStore.user?.id"
         @like="toggleLike($event, cssnippet)"
         @favorite="toggleFavorite($event, cssnippet)"
+        @refresh="fetchData(currentPage.value)"
       />
     </div>
     

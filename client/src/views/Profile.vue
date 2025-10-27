@@ -103,17 +103,15 @@
           <div v-if="loading" class="loading">加载中...</div>
           
           <div v-else-if="mySnippets.length > 0" class="snippets-grid">
-            <SnippetCard 
-              v-for="snippet in mySnippets" 
-              :key="snippet.id"
-              :cssnippet="snippet"
-              :is-owner="true"
-              :show-author="false"
-              @edit="editSnippet(snippet.id)"
-              @delete="confirmDelete(snippet)"
-              @toggle-visibility="toggleVisibility(snippet)"
-            />
-          </div>
+              <SnippetCard 
+                v-for="snippet in mySnippets" 
+                :key="snippet.id"
+                :cssnippet="snippet"
+                :is-owner="true"
+                :show-author="false"
+                @refresh="loadMySnippets(mySnippetsPage.value)"
+              />
+            </div>
           
           <div v-else class="empty-state">
             <p>您还没有创建任何 CSS 代码段</p>
@@ -140,14 +138,14 @@
           
           <div v-else-if="likedSnippets.length > 0" class="snippets-grid">
             <SnippetCard 
-              v-for="snippet in likedSnippets" 
-              :key="snippet.id"
-              :cssnippet="snippet"
-              :is-owner="snippet.user_id === userStore.user?.id"
-              @click="goToDetail(snippet.id)"
-              @like="() => toggleLike(snippet)"
-              @favorite="() => toggleFavorite(snippet)"
-            />
+                v-for="snippet in likedSnippets" 
+                :key="snippet.id"
+                :cssnippet="snippet"
+                :is-owner="snippet.user_id === userStore.user?.id"
+                @like="() => toggleLike(snippet)"
+                @favorite="() => toggleFavorite(snippet)"
+                @refresh="loadLikedSnippets(likedSnippetsPage.value)"
+              />
           </div>
           
           <div v-else class="empty-state">
@@ -175,14 +173,14 @@
           
           <div v-else-if="favoritedSnippets.length > 0" class="snippets-grid">
             <SnippetCard 
-              v-for="snippet in favoritedSnippets" 
-              :key="snippet.id"
-              :cssnippet="snippet"
-              :is-owner="snippet.user_id === userStore.user?.id"
-              @click="goToDetail(snippet.id)"
-              @like="() => toggleLike(snippet)"
-              @favorite="() => toggleFavorite(snippet)"
-            />
+                v-for="snippet in favoritedSnippets" 
+                :key="snippet.id"
+                :cssnippet="snippet"
+                :is-owner="snippet.user_id === userStore.user?.id"
+                @like="() => toggleLike(snippet)"
+                @favorite="() => toggleFavorite(snippet)"
+                @refresh="loadFavoritedSnippets(favoritedSnippetsPage.value)"
+              />
           </div>
           
           <div v-else class="empty-state">
@@ -571,28 +569,6 @@ import Pagination from '../components/Pagination.vue'
         }
       };
     
-      const confirmDelete = async (snippet) => {
-        if (confirm(`您确定要删除代码段「${snippet.title}」吗？此操作无法撤销。`)) {
-          try {
-            await cssnippetStore.deleteCssnippet(snippet.id);
-            loadMySnippets(mySnippetsPage.value);
-          } catch (err) {
-            console.error('Failed to delete snippet:', err);
-            alert('删除失败: ' + (err.message || '未知错误'));
-          }
-        }
-      };
-
-      // 删除相关函数已简化为confirmAndDeleteComment
-      const toggleVisibility = async (snippet) => {
-        try {
-          await cssnippetStore.toggleVisibility(snippet.id);
-          snippet.is_public = !snippet.is_public;
-        } catch (err) {
-          console.error('Failed to toggle visibility:', err);
-        }
-      };
-
       // 显示删除确认弹窗
       const confirmAndDeleteComment = (commentId) => {
         currentDeleteCommentId.value = commentId;
@@ -628,9 +604,6 @@ import Pagination from '../components/Pagination.vue'
       router.push(`/detail/${id}`)
     }
     
-    const editSnippet = (id) => {
-  router.push(`/cssnippet/${id}/edit`)
-    }
     
     // 移除了原有的getPreviewStyle方法，使用CssPreview组件代替
     

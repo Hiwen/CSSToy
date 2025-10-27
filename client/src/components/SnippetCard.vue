@@ -44,18 +44,18 @@
     
     <!-- 作者操作按钮 - 仅在个人中心显示 -->
     <div v-if="isOwner" class="snippet-actions">
-      <button class="btn btn-sm btn-primary" @click.stop="$emit('edit')">
+      <button class="btn btn-sm btn-primary" @click.stop="editSnippet">
         编辑
       </button>
       
-      <button class="btn btn-sm btn-danger" @click.stop="$emit('delete')">
+      <button class="btn btn-sm btn-danger" @click.stop="confirmDelete">
         删除
       </button>
       
       <button 
         class="btn btn-sm" 
         :class="cssnippet.is_public ? 'btn-secondary' : 'btn-success'"
-        @click.stop="$emit('toggle-visibility')"
+        @click.stop="toggleVisibility"
       >
         {{ cssnippet.is_public ? '公开' : '私密' }}
       </button>
@@ -68,14 +68,34 @@
       </button>
     </div>
   </div>
+  
+  <!-- 删除确认弹窗 -->
+  <DeleteConfirm
+    :visible="showDeleteConfirm"
+    title="确认删除代码段"
+    :message="`您确定要删除代码段「${props.cssnippet.title}」吗？此操作无法撤销。`"
+    :loading="deleteLoading"
+    @confirm="handleConfirmDelete"
+    @cancel="handleCancelDelete"
+    @overlay-click="handleCancelDelete"
+  />
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
+import { useCSSnippetStore } from '../stores/cssnippet'
 import CssPreview from './CssPreview.vue'
+import DeleteConfirm from './DeleteConfirm.vue'
 
 const router = useRouter()
+const cssnippetStore = useCSSnippetStore()
+const { proxy } = getCurrentInstance()
+const $notification = proxy?.$notification
+
+// 删除确认相关状态
+const showDeleteConfirm = ref(false)
+const deleteLoading = ref(false)
 
 // 定义组件属性
 const props = defineProps({
@@ -106,7 +126,7 @@ const props = defineProps({
 })
 
 // 定义事件
-const emit = defineEmits(['click', 'view', 'edit', 'delete', 'toggle-visibility', 'like', 'favorite'])
+const emit = defineEmits(['click', 'view', 'refresh'])
 
 // 计算属性
 const truncateDescription = computed(() => {
@@ -157,6 +177,49 @@ const handleClick = () => {
 const handleViewClick = () => {
   emit('click')
   router.push(detailRoute.value)
+}
+
+// 组件内部实现的操作函数
+const editSnippet = () => {
+  router.push(`/cssnippet/${props.cssnippet.id}/edit`)
+}
+
+const confirmDelete = () => {
+  showDeleteConfirm.value = true
+}
+
+const handleConfirmDelete = async () => {
+  deleteLoading.value = true
+  try {
+    await cssnippetStore.deleteCssnippet(props.cssnippet.id)
+    // 通知父组件刷新列表
+    emit('refresh')
+    showDeleteConfirm.value = false
+  } catch (err) {
+    console.error('Failed to delete snippet:', err)
+    alert('删除失败: ' + (err.message || '未知错误'))
+    showDeleteConfirm.value = false
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
+const handleCancelDelete = () => {
+  showDeleteConfirm.value = false
+}
+
+const toggleVisibility = async () => {
+  try {
+    await cssnippetStore.toggleVisibility(props.cssnippet.id)
+    // Store中已更新状态，无需在这里重复更新
+  } catch (err) {
+    console.error('Failed to toggle visibility:', err)
+    // 使用Notification组件替代alert，按照服务方法期望的参数格式调用
+    $notification.error(
+      '切换可见性失败: ' + (err.message || '未知错误'),
+      '操作失败'
+    )
+  }
 }
 </script>
 
