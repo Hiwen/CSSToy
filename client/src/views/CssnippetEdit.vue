@@ -95,7 +95,25 @@
         
         <!-- 预览区域 -->
         <div class="preview-section">
-          <h3>实时预览</h3>
+          <div class="preview-header">
+            <h3>实时预览</h3>
+            <div class="template-selector">
+              <span>快速模板：</span>
+              <button @click="insertHtmlTemplate('button')" class="template-btn">按钮</button>
+              <button @click="insertHtmlTemplate('card')" class="template-btn">卡片</button>
+              <button @click="insertHtmlTemplate('link')" class="template-btn">链接</button>
+              <button @click="insertHtmlTemplate('input')" class="template-btn">输入框</button>
+              <button @click="insertHtmlTemplate('text')" class="template-btn">文本</button>
+              <button @click="insertHtmlTemplate('nav')" class="template-btn">导航</button>
+              <button @click="insertHtmlTemplate('cardGrid')" class="template-btn">卡片网格</button>
+              <button @click="insertHtmlTemplate('form')" class="template-btn">表单</button>
+              <button @click="insertHtmlTemplate('modal')" class="template-btn">模态框</button>
+              <button @click="insertHtmlTemplate('hero')" class="template-btn">英雄区</button>
+              <button @click="insertHtmlTemplate('table')" class="template-btn">表格</button>
+              <button @click="insertHtmlTemplate('testimonial')" class="template-btn">评价</button>
+              <button @click="insertHtmlTemplate('avatarGroup')" class="template-btn">头像组</button>
+            </div>
+          </div>
           <div class="preview-box">
             <div 
               id="preview-element" 
@@ -345,7 +363,15 @@ ${form.cssCode}
         'card': '<div class="card">卡片内容</div>',
         'link': '<a href="#">链接</a>',
         'input': '<input type="text" placeholder="输入框">',
-        'text': '<div>默认文本</div>'
+        'text': '<div>默认文本</div>',
+        'nav': '<nav><ul><li><a href="#">首页</a></li><li><a href="#">关于</a></li><li><a href="#">联系</a></li></ul></nav>',
+        'cardGrid': '<div class="grid"><div class="card-item">卡片1</div><div class="card-item">卡片2</div><div class="card-item">卡片3</div></div>',
+        'form': '<form><div class="form-group"><label>姓名</label><input type="text"></div><div class="form-group"><label>邮箱</label><input type="email"></div><button type="submit">提交</button></form>',
+        'modal': '<div class="modal"><div class="modal-content"><h3>模态框标题</h3><p>模态框内容</p><button>关闭</button></div></div>',
+        'hero': '<header class="hero"><h1>英雄区域</h1><p>这里是引人注目的主标题区域</p><button>了解更多</button></header>',
+        'table': '<table><thead><tr><th>表头1</th><th>表头2</th><th>表头3</th></tr></thead><tbody><tr><td>数据1</td><td>数据2</td><td>数据3</td></tr><tr><td>数据4</td><td>数据5</td><td>数据6</td></tr></tbody></table>',
+        'testimonial': '<div class="testimonial"><div class="quote">"这是一段很棒的评价！"</div><div class="author">— 用户名称</div></div>',
+        'avatarGroup': '<div class="avatar-group"><div class="avatar">A</div><div class="avatar">B</div><div class="avatar">C</div><div class="avatar">+5</div></div>'
       }
       form.htmlCode = templates[type] || ''
       updatePreview()

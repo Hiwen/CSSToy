@@ -152,6 +152,87 @@ router.get('/latest', (req, res) => {
   );
 });
 
+// 搜索代码段
+router.get('/search', (req, res) => {
+  const query = req.query.q || '';
+  const limit = parseInt(req.query.limit) || 10;
+  
+  if (!query.trim()) {
+    return res.json([]);
+  }
+  
+  // 搜索标题、描述和标签中包含查询字符串的代码段
+  const searchQuery = `
+    SELECT DISTINCT c.*, u.username, u.avatar 
+    FROM cssnippets c 
+    JOIN users u ON c.user_id = u.id
+    LEFT JOIN cssnippet_tags ct ON c.id = ct.cssnippet_id
+    LEFT JOIN tags t ON ct.tag_id = t.id
+    WHERE (c.title LIKE ? OR c.description LIKE ? OR t.name LIKE ?)
+    AND c.created_at >= datetime('now', '-7 days')
+    ORDER BY (c.likes_count * 0.5 + c.collections_count * 0.3 + c.comments_count * 0.2) DESC
+    LIMIT ?
+  `;
+  
+  const searchParam = `%${query}%`;
+  
+  db.all(searchQuery, [searchParam, searchParam, searchParam, limit], async (err, cssnippets) => {
+    if (err) {
+      return res.status(500).json({ error: '数据库错误' });
+    }
+    
+    // 如果用户已登录，为每个代码段添加点赞和收藏状态
+    if (req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.split(' ')[1];
+        const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'csstoy_secret_key');
+        
+        // 使用Promise.all并发检查所有代码段的状态
+        await Promise.all(cssnippets.map(cssnippet => {
+          return new Promise((resolve) => {
+            // 检查点赞状态
+            db.get('SELECT * FROM likes WHERE user_id = ? AND cssnippet_id = ?', 
+              [decoded.userId, cssnippet.id], (err, like) => {
+              cssnippet.isLiked = !!like;
+              
+              // 检查收藏状态
+              db.get('SELECT * FROM collections WHERE user_id = ? AND cssnippet_id = ?', 
+                [decoded.userId, cssnippet.id], (err, collection) => {
+                cssnippet.isCollected = !!collection;
+                resolve();
+              });
+            });
+          });
+        }));
+      } catch (e) {
+        // token无效，继续返回基本信息
+        console.log('无效的token，不设置点赞和收藏状态');
+      }
+    }
+    
+    // 为每个结果获取标签
+    await Promise.all(cssnippets.map(cssnippet => {
+      return new Promise((resolve) => {
+        db.all(
+          `SELECT t.id, t.name 
+           FROM tags t 
+           JOIN cssnippet_tags ct ON t.id = ct.tag_id 
+           WHERE ct.cssnippet_id = ?`,
+          [cssnippet.id],
+          (err, tags) => {
+            if (!err) {
+              cssnippet.tags = tags;
+            }
+            resolve();
+          }
+        );
+      });
+    }));
+    
+    res.json(cssnippets);
+  });
+});
+
 // 获取CSS代码段详情
 router.get('/:id', (req, res) => {
   const { id } = req.params;

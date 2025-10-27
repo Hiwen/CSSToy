@@ -119,6 +119,79 @@ body::after {
   flex: 1;
   max-width: 500px;
   margin: 0 20px;
+  position: relative;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: rgba(16, 23, 42, 0.95);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  margin-top: 5px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.1);
+}
+
+.search-result-item:hover {
+  background-color: rgba(56, 189, 248, 0.05);
+  padding-left: 18px;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.result-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+
+.result-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.result-tag {
+  font-size: 11px;
+  background-color: rgba(56, 189, 248, 0.1);
+  color: var(--primary-color);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.search-more {
+  text-align: center;
+  padding: 10px;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 14px;
+  border-top: 1px solid rgba(56, 189, 248, 0.1);
+  transition: all 0.3s ease;
+}
+
+.search-more:hover {
+  background-color: rgba(56, 189, 248, 0.05);
+  color: var(--primary-hover);
 }
 
 .search-input {
@@ -421,6 +494,49 @@ body::after {
 
 .preview-container {
   grid-column: 1 / -1;
+}
+
+.preview-section {
+  margin-top: 20px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.template-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.template-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border-color);
+  background-color: rgba(16, 23, 42, 0.9);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.template-btn:hover {
+  background-color: rgba(56, 189, 248, 0.1);
+  border-color: var(--border-color-hover);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.template-btn:active {
+  transform: translateY(0);
 }
 
 /* 评论样式 */

@@ -5,14 +5,31 @@
         <router-link to="/" class="nav-logo">CSSToy</router-link>
         
         <div class="nav-search">
+        <div class="search-container">
           <input 
             type="text" 
             class="search-input" 
             placeholder="搜索CSS代码段..."
             v-model="searchQuery"
-            @keyup.enter="handleSearch"
+            @input="handleSearch"
+            @keyup.enter="navigateToSearch"
           >
+          <div v-if="searchQuery && searchResults.length > 0" class="search-dropdown">
+            <div 
+              v-for="result in searchResults.slice(0, 5)" 
+              :key="result.id"
+              class="search-result-item"
+              @click="navigateToResult(result.id)"
+            >
+              <div class="result-title">{{ result.title }}</div>
+              <div class="result-tags">
+                <span v-for="tag in result.tags.slice(0, 3)" :key="tag" class="result-tag">{{ tag }}</span>
+              </div>
+            </div>
+            <div class="search-more" @click="navigateToSearch">查看更多结果...</div>
+          </div>
         </div>
+      </div>
         
         <div v-if="!user" class="nav-auth">
           <router-link to="/login" class="btn btn-secondary">登录</router-link>
@@ -50,9 +67,10 @@
 </template>
 
 <script>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from './stores/user'
+import axios from 'axios'
 
 export default {
   name: 'App',
@@ -61,6 +79,9 @@ export default {
     const route = useRoute()
     const userStore = useUserStore()
     const searchQuery = ref('')
+    const searchResults = ref([])
+    const searchLoading = ref(false)
+    const searchTimer = ref(null)
     
     const user = computed(() => userStore.user)
     
@@ -73,8 +94,51 @@ export default {
     })
     
     const handleSearch = () => {
+      // 清除之前的定时器
+      if (searchTimer.value) {
+        clearTimeout(searchTimer.value)
+      }
+      
+      // 最小化请求频率，设置300ms的延迟
+      searchTimer.value = setTimeout(async () => {
+        const query = searchQuery.value.trim()
+        if (query.length >= 2) {
+          searchLoading.value = true
+          try {
+            const response = await axios.get('/api/cssnippets/search', {
+              params: { q: query, limit: 10 }
+            })
+            searchResults.value = response.data
+          } catch (error) {
+            console.error('搜索失败:', error)
+            searchResults.value = []
+          } finally {
+            searchLoading.value = false
+          }
+        } else {
+          searchResults.value = []
+        }
+      }, 300)
+    }
+    
+    const navigateToSearch = () => {
       if (searchQuery.value.trim()) {
         router.push({ path: '/search', query: { q: searchQuery.value } })
+        searchResults.value = []
+      }
+    }
+    
+    const navigateToResult = (id) => {
+      router.push(`/cssnippets/${id}`)
+      searchResults.value = []
+      searchQuery.value = ''
+    }
+    
+    // 点击页面其他地方关闭搜索下拉框
+    const handleClickOutside = (event) => {
+      const searchContainer = event.target.closest('.search-container')
+      if (!searchContainer) {
+        searchResults.value = []
       }
     }
     
@@ -84,12 +148,27 @@ export default {
       if (token) {
         userStore.fetchUserInfo()
       }
+      
+      // 添加全局点击事件监听
+      window.addEventListener('click', handleClickOutside)
+    })
+    
+    onBeforeUnmount(() => {
+      // 清理定时器和事件监听
+      if (searchTimer.value) {
+        clearTimeout(searchTimer.value)
+      }
+      window.removeEventListener('click', handleClickOutside)
     })
     
     return {
       user,
       searchQuery,
+      searchResults,
+      searchLoading,
       handleSearch,
+      navigateToSearch,
+      navigateToResult,
       isCreateOrEditPage
     }
   }
