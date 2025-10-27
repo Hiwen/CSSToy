@@ -35,14 +35,24 @@ router.get('/popular', (req, res) => {
         return res.status(500).json({ error: '数据库错误' });
       }
       
+      // 将每个代码段的status字段转换为is_public字段
+      cssnippets.forEach(cssnippet => {
+        cssnippet.is_public = cssnippet.status === 'active';
+      });
+      
       // 如果用户已登录，为每个代码段添加点赞和收藏状态
-      if (req.headers.authorization) {
-        try {
-          const token = req.headers.authorization.split(' ')[1];
-          const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'csstoy_secret_key');
-          
-          // 使用Promise.all并发检查所有代码段的状态
-          await Promise.all(cssnippets.map(cssnippet => {
+        if (req.headers.authorization) {
+          try {
+            const token = req.headers.authorization.split(' ')[1];
+            const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'csstoy_secret_key');
+            
+            // 先将每个代码段的status字段转换为is_public字段
+            cssnippets.forEach(cssnippet => {
+              cssnippet.is_public = cssnippet.status === 'active';
+            });
+            
+            // 使用Promise.all并发检查所有代码段的状态
+            await Promise.all(cssnippets.map(cssnippet => {
             return new Promise((resolve) => {
               // 检查点赞状态
               db.get('SELECT * FROM likes WHERE user_id = ? AND cssnippet_id = ?', 
@@ -102,6 +112,11 @@ router.get('/latest', (req, res) => {
       if (err) {
         return res.status(500).json({ error: '数据库错误' });
       }
+      
+      // 将每个代码段的status字段转换为is_public字段
+      cssnippets.forEach(cssnippet => {
+        cssnippet.is_public = cssnippet.status === 'active';
+      });
       
       // 如果用户已登录，为每个代码段添加点赞和收藏状态
       if (req.headers.authorization) {
@@ -187,6 +202,11 @@ router.get('/search', (req, res) => {
         const token = req.headers.authorization.split(' ')[1];
         const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'csstoy_secret_key');
         
+        // 先将每个代码段的status字段转换为is_public字段
+        cssnippets.forEach(cssnippet => {
+          cssnippet.is_public = cssnippet.status === 'active';
+        });
+        
         // 使用Promise.all并发检查所有代码段的状态
         await Promise.all(cssnippets.map(cssnippet => {
           return new Promise((resolve) => {
@@ -251,6 +271,9 @@ router.get('/:id', (req, res) => {
       if (!cssnippet) {
         return res.status(404).json({ error: 'CSS代码段不存在' });
       }
+      
+      // 将status字段转换为is_public字段，保持与前端一致
+      cssnippet.is_public = cssnippet.status === 'active';
       
       // 获取标签
       db.all(
@@ -421,6 +444,50 @@ router.put('/:id', authMiddleware, (req, res) => {
         } else {
           res.json({ message: '更新成功' });
         }
+      }
+    );
+  });
+});
+
+// 切换代码段可见性
+router.patch('/:id/visibility', authMiddleware, (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.userId;
+  console.log(`接收到切换代码段可见性请求，ID: ${id}，用户ID: ${userId}`);
+  
+  // 检查是否是代码段所有者
+  db.get('SELECT * FROM cssnippets WHERE id = ? AND user_id = ?', 
+    [id, userId], (err, cssnippet) => {
+    if (err) {
+      console.error('查询代码段时出错:', err);
+      return res.status(500).json({ error: '数据库错误' });
+    }
+    
+    if (!cssnippet) {
+      console.log(`用户 ${userId} 无权修改代码段 ${id}`);
+      return res.status(403).json({ error: '无权修改此代码段' });
+    }
+    
+    console.log(`找到代码段，当前状态: ${cssnippet.status}`);
+    // 使用status列实现可见性切换：'active'表示公开，'private'表示私密
+    const newStatus = cssnippet.status === 'active' ? 'private' : 'active';
+    const isPublic = newStatus === 'active';
+    
+    // 更新数据库
+    db.run(
+      'UPDATE cssnippets SET status = ? WHERE id = ?',
+      [newStatus, id],
+      function(err) {
+        if (err) {
+          console.error('更新可见性时出错:', err);
+          return res.status(500).json({ error: '更新可见性失败', details: err.message });
+        }
+        
+        console.log(`代码段 ${id} 可见性更新成功，状态从 ${cssnippet.status} 变为 ${newStatus}，影响行数: ${this.changes}`);
+        res.json({ 
+          message: '可见性更新成功', 
+          isPublic: isPublic 
+        });
       }
     );
   });

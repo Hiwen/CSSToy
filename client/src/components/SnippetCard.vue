@@ -54,10 +54,10 @@
       
       <button 
         class="btn btn-sm" 
-        :class="cssnippet.is_public ? 'btn-secondary' : 'btn-success'"
+        :class="cssnippet.is_public ? 'btn-success' : 'btn-secondary'"
         @click.stop="toggleVisibility"
       >
-        {{ cssnippet.is_public ? '公开' : '私密' }}
+        {{ cssnippet.is_public ? '私密' : '公开' }}
       </button>
     </div>
     
