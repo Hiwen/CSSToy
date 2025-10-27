@@ -4,6 +4,7 @@ import axios from 'axios'
 import App from './App.vue'
 import router from './router'
 import './assets/main.css'
+import { NotificationPlugin } from './services/notificationService'
 
 // 配置axios基础URL
 axios.defaults.baseURL = 'http://localhost:3000'
@@ -19,5 +20,6 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+app.use(NotificationPlugin)
 
 app.mount('#app')

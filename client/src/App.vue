@@ -1,5 +1,17 @@
 <template>
   <div class="app">
+    <!-- 全局通知组件 -->
+    <Notification
+      v-if="currentNotification && currentNotification.visible"
+      :visible="currentNotification.visible"
+      :title="currentNotification.title"
+      :message="currentNotification.message"
+      :type="currentNotification.type"
+      :auto-close="currentNotification.autoClose"
+      :duration="currentNotification.duration"
+      @close="handleNotificationClose"
+    />
+    
     <header class="header">
       <div class="container nav">
         <router-link to="/" class="nav-logo">CSSToy</router-link>
@@ -66,113 +78,109 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from './stores/user'
 import axios from 'axios'
+import Notification from './components/Notification.vue'
+import notificationService from './services/notificationService'
 
-export default {
-  name: 'App',
-  setup() {
-    const router = useRouter()
-    const route = useRoute()
-    const userStore = useUserStore()
-    const searchQuery = ref('')
-    const searchResults = ref([])
-    const searchLoading = ref(false)
-    const searchTimer = ref(null)
-    
-    const user = computed(() => userStore.user)
-    
-    // 判断是否在新建或编辑页面
-    const isCreateOrEditPage = computed(() => {
-      // 根据实际路由路径修改匹配逻辑
-      const currentPath = route.path
-      return currentPath === '/cssnippet/new' || 
-             currentPath.includes('/cssnippet/') && currentPath.includes('/edit')
-    })
-    
-    const handleSearch = () => {
-      // 清除之前的定时器
-      if (searchTimer.value) {
-        clearTimeout(searchTimer.value)
-      }
-      
-      // 最小化请求频率，设置300ms的延迟
-      searchTimer.value = setTimeout(async () => {
-        const query = searchQuery.value.trim()
-        if (query.length >= 2) {
-          searchLoading.value = true
-          try {
-            const response = await axios.get('/api/cssnippets/search', {
-              params: { q: query, limit: 10 }
-            })
-            searchResults.value = response.data
-          } catch (error) {
-            console.error('搜索失败:', error)
-            searchResults.value = []
-          } finally {
-            searchLoading.value = false
-          }
-        } else {
-          searchResults.value = []
-        }
-      }, 300)
-    }
-    
-    const navigateToSearch = () => {
-      if (searchQuery.value.trim()) {
-        router.push({ path: '/search', query: { q: searchQuery.value } })
-        searchResults.value = []
-      }
-    }
-    
-    const navigateToResult = (id) => {
-      router.push(`/cssnippets/${id}`)
-      searchResults.value = []
-      searchQuery.value = ''
-    }
-    
-    // 点击页面其他地方关闭搜索下拉框
-    const handleClickOutside = (event) => {
-      const searchContainer = event.target.closest('.search-container')
-      if (!searchContainer) {
-        searchResults.value = []
-      }
-    }
-    
-    onMounted(() => {
-      // 从localStorage恢复登录状态
-      const token = localStorage.getItem('token')
-      if (token) {
-        userStore.fetchUserInfo()
-      }
-      
-      // 添加全局点击事件监听
-      window.addEventListener('click', handleClickOutside)
-    })
-    
-    onBeforeUnmount(() => {
-      // 清理定时器和事件监听
-      if (searchTimer.value) {
-        clearTimeout(searchTimer.value)
-      }
-      window.removeEventListener('click', handleClickOutside)
-    })
-    
-    return {
-      user,
-      searchQuery,
-      searchResults,
-      searchLoading,
-      handleSearch,
-      navigateToSearch,
-      navigateToResult,
-      isCreateOrEditPage
-    }
+const router = useRouter()
+const route = useRoute()
+const userStore = useUserStore()
+const searchQuery = ref('')
+const searchResults = ref([])
+const searchLoading = ref(false)
+const searchTimer = ref(null)
+
+// 获取当前通知
+const currentNotification = computed(() => notificationService.getCurrentNotification())
+
+// 处理通知关闭事件
+const handleNotificationClose = () => {
+  if (currentNotification.value) {
+    notificationService.hide(currentNotification.value.id)
   }
 }
+
+const user = computed(() => userStore.user)
+
+// 判断是否在新建或编辑页面
+const isCreateOrEditPage = computed(() => {
+  // 根据实际路由路径修改匹配逻辑
+  const currentPath = route.path
+  return currentPath === '/cssnippet/new' || 
+         currentPath.includes('/cssnippet/') && currentPath.includes('/edit')
+})
+
+const handleSearch = () => {
+  // 清除之前的定时器
+  if (searchTimer.value) {
+    clearTimeout(searchTimer.value)
+  }
+  
+  // 最小化请求频率，设置300ms的延迟
+  searchTimer.value = setTimeout(async () => {
+    const query = searchQuery.value.trim()
+    if (query.length >= 2) {
+      searchLoading.value = true
+      try {
+        const response = await axios.get('/api/cssnippets/search', {
+          params: { q: query, limit: 10 }
+        })
+        searchResults.value = response.data
+      } catch (error) {
+        console.error('搜索失败:', error)
+        searchResults.value = []
+      } finally {
+        searchLoading.value = false
+      }
+    } else {
+      searchResults.value = []
+    }
+  }, 300)
+}
+
+const navigateToSearch = () => {
+  if (searchQuery.value.trim()) {
+    router.push({ path: '/search', query: { q: searchQuery.value } })
+    searchResults.value = []
+  }
+}
+
+const navigateToResult = (id) => {
+  router.push(`/cssnippets/${id}`)
+  searchResults.value = []
+  searchQuery.value = ''
+}
+
+// 点击页面其他地方关闭搜索下拉框
+const handleClickOutside = (event) => {
+  const searchContainer = event.target.closest('.search-container')
+  if (!searchContainer) {
+    searchResults.value = []
+  }
+}
+
+onMounted(() => {
+  // 从localStorage恢复登录状态
+  const token = localStorage.getItem('token')
+  if (token) {
+    userStore.fetchUserInfo()
+  }
+  
+  // 添加全局点击事件监听
+  window.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  // 清理定时器和事件监听
+  if (searchTimer.value) {
+    clearTimeout(searchTimer.value)
+  }
+  window.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style>

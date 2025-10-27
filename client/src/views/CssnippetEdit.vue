@@ -2,58 +2,33 @@
   <div class="cssnippet-edit-container">
     <div class="edit-form card">
       <h2>{{ isEditMode ? '编辑 CSS 代码段' : '创建 CSS 代码段' }}</h2>
-      
+
       <div v-if="error" class="form-error">{{ error }}</div>
-      
+
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
           <label class="form-label" for="title">标题</label>
-          <input 
-            type="text" 
-            id="title" 
-            class="form-input" 
-            v-model="form.title"
-            placeholder="请输入代码段标题"
-            required
-          >
+          <input type="text" id="title" class="form-input" v-model="form.title" placeholder="请输入代码段标题" required>
           <div v-if="errors.title" class="form-error">{{ errors.title }}</div>
         </div>
-        
+
         <div class="form-group">
           <label class="form-label" for="description">描述</label>
-          <textarea 
-            id="description" 
-            class="form-input" 
-            v-model="form.description"
-            placeholder="请描述这个 CSS 代码段的功能和用途"
-            rows="3"
-          ></textarea>
+          <textarea id="description" class="form-input" v-model="form.description" placeholder="请描述这个 CSS 代码段的功能和用途"
+            rows="3"></textarea>
         </div>
-        
+
         <div class="form-group">
           <label class="form-label" for="cssCode">CSS 代码</label>
-          <textarea 
-            id="cssCode" 
-            class="form-input code-editor" 
-            v-model="form.cssCode"
-            placeholder="请输入 CSS 代码"
-            rows="10"
-            required
-            @input="updatePreview"
-          ></textarea>
+          <textarea id="cssCode" class="form-input code-editor" v-model="form.cssCode" placeholder="请输入 CSS 代码"
+            rows="10" required @input="updatePreview"></textarea>
           <div v-if="errors.cssCode" class="form-error">{{ errors.cssCode }}</div>
         </div>
-        
+
         <div class="form-group">
           <label class="form-label" for="htmlCode">HTML 代码</label>
-          <textarea 
-            id="htmlCode" 
-            class="form-input code-editor" 
-            v-model="form.htmlCode"
-            placeholder="请输入 HTML 代码"
-            rows="8"
-            @input="updatePreview"
-          ></textarea>
+          <textarea id="htmlCode" class="form-input code-editor" v-model="form.htmlCode" placeholder="请输入 HTML 代码"
+            rows="8" @input="updatePreview"></textarea>
           <div class="template-buttons">
             <button type="button" class="btn btn-sm btn-outline" @click="insertHtmlTemplate('button')">按钮</button>
             <button type="button" class="btn btn-sm btn-outline" @click="insertHtmlTemplate('card')">卡片</button>
@@ -62,37 +37,27 @@
             <button type="button" class="btn btn-sm btn-outline" @click="insertHtmlTemplate('text')">默认文本</button>
           </div>
         </div>
-        
+
         <div class="form-group">
           <label class="form-label" for="tags">标签</label>
-          <input 
-            type="text" 
-            id="tags" 
-            class="form-input" 
-            v-model="tagInput"
-            placeholder="输入标签，用逗号分隔（最多5个标签）"
-            @keydown.enter.prevent="addTag"
-          >
-          
+          <input type="text" id="tags" class="form-input" v-model="tagInput" placeholder="输入标签，用逗号分隔（最多5个标签）"
+            @keydown.enter.prevent="addTag">
+
           <div class="tags-container">
-            <span 
-              v-for="tag in form.tags" 
-              :key="tag"
-              class="tag"
-            >
+            <span v-for="tag in form.tags" :key="tag" class="tag">
               {{ tag }}
               <button type="button" class="tag-remove" @click="removeTag(tag)">×</button>
             </span>
           </div>
         </div>
-        
+
         <div class="form-group">
           <label class="form-label checkbox">
             <input type="checkbox" v-model="form.isPublic">
             <span>公开这个代码段（勾选后其他用户可以看到并搜索到）</span>
           </label>
         </div>
-        
+
         <!-- 预览区域 -->
         <div class="preview-section">
           <div class="preview-header">
@@ -115,24 +80,15 @@
             </div>
           </div>
           <div class="preview-box">
-            <div 
-              id="preview-element" 
-              class="preview-element" 
-              :style="previewStyles"
-              ref="previewRef"
-            >CSS 预览效果</div>
+            <div id="preview-element" class="preview-element" :style="previewStyles" ref="previewRef">CSS 预览效果</div>
           </div>
         </div>
-        
+
         <div class="form-actions">
-          <button 
-            type="submit" 
-            class="btn btn-primary"
-            :disabled="loading"
-          >
+          <button type="submit" class="btn btn-primary" :disabled="loading">
             {{ loading ? '保存中...' : '保存代码段' }}
           </button>
-          
+
           <router-link to="/" class="btn btn-outline">
             取消
           </router-link>
@@ -147,267 +103,270 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
 import { useUserStore } from '../stores/user'
-    const route = useRoute()
-    const router = useRouter()
-    const cssnippetStore = useCssnippetStore()
-    const userStore = useUserStore()
-    
-    const form = reactive({
-      title: '',
-      description: '',
-      cssCode: '',
-      htmlCode: '',
-      tags: [],
-      isPublic: true
-    })
-    
-    const tagInput = ref('')
-    const errors = reactive({})
-    const loading = ref(false)
-    const error = ref('')
-    const previewStyles = ref({})
-    const previewRef = ref(null)
-    
-    // 监听CSS代码变化，确保预览同步更新
-    watch(() => form.cssCode, () => {
-      updatePreview()
-    })
-    
-    // 组件卸载时清理样式元素
-    onUnmounted(() => {
-      const styleElement = document.getElementById('edit-preview-style');
-      if (styleElement) {
-        styleElement.remove();
-      }
-    })
-    
-    const isEditMode = computed(() => {
-      return !!route.params.id
-    })
-    
-    const validateForm = () => {
-      let isValid = true
-      errors.title = ''
-      errors.cssCode = ''
-      
-      // 验证标题
-      if (!form.title.trim()) {
-        errors.title = '标题不能为空'
-        isValid = false
-      } else if (form.title.length > 100) {
-        errors.title = '标题长度不能超过100个字符'
-        isValid = false
-      }
-      
-      // 验证CSS代码
-      if (!form.cssCode.trim()) {
-        errors.cssCode = 'CSS代码不能为空'
-        isValid = false
-      } else if (form.cssCode.length > 10000) {
-        errors.cssCode = 'CSS代码长度不能超过10000个字符'
-        isValid = false
-      }
-      
-      // 验证标签数量
-      if (form.tags.length > 5) {
-        error.value = '标签数量不能超过5个'
-        isValid = false
-      }
-      
-      return isValid
+import notificationService from '../services/notificationService'
+const route = useRoute()
+const router = useRouter()
+const cssnippetStore = useCssnippetStore()
+const userStore = useUserStore()
+
+const form = reactive({
+  title: '',
+  description: '',
+  cssCode: '',
+  htmlCode: '',
+  tags: [],
+  isPublic: true
+})
+
+const tagInput = ref('')
+const errors = reactive({})
+const loading = ref(false)
+const error = ref('')
+const previewStyles = ref({})
+const previewRef = ref(null)
+
+// 监听CSS代码变化，确保预览同步更新
+watch(() => form.cssCode, () => {
+  updatePreview()
+})
+
+// 组件卸载时清理样式元素
+onUnmounted(() => {
+  const styleElement = document.getElementById('edit-preview-style');
+  if (styleElement) {
+    styleElement.remove();
+  }
+})
+
+const isEditMode = computed(() => {
+  return !!route.params.id
+})
+
+const validateForm = () => {
+  let isValid = true
+  errors.title = ''
+  errors.cssCode = ''
+
+  // 验证标题
+  if (!form.title.trim()) {
+    errors.title = '标题不能为空'
+    isValid = false
+  } else if (form.title.length > 100) {
+    errors.title = '标题长度不能超过100个字符'
+    isValid = false
+  }
+
+  // 验证CSS代码
+  if (!form.cssCode.trim()) {
+    errors.cssCode = 'CSS代码不能为空'
+    isValid = false
+  } else if (form.cssCode.length > 10000) {
+    errors.cssCode = 'CSS代码长度不能超过10000个字符'
+    isValid = false
+  }
+
+  // 验证标签数量
+  if (form.tags.length > 5) {
+    error.value = '标签数量不能超过5个'
+    isValid = false
+  }
+
+  return isValid
+}
+
+const loadExistingCssnippet = async () => {
+  const id = route.params.id
+  if (!id) return
+
+  try {
+    loading.value = true
+    const snippet = await cssnippetStore.fetchById(id)
+
+    // 检查权限
+    if (snippet.user_id !== userStore.user.id) {
+      error.value = '您没有权限编辑这个代码段'
+      return
     }
-    
-    const loadExistingCssnippet = async () => {
-      const id = route.params.id
-      if (!id) return
-      
+
+    // 填充表单
+    form.title = snippet.title
+    form.description = snippet.description
+    form.cssCode = snippet.css_content
+    form.htmlCode = snippet.html_content || ''
+    form.tags = snippet.tags.map(tag => tag.name)
+    form.isPublic = snippet.is_public
+
+    // 更新预览
+    updatePreview()
+  } catch (err) {
+    console.error('Failed to load cssnippet:', err)
+    error.value = '加载代码段失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSubmit = async () => {
+  // 清空之前的错误信息
+  error.value = ''
+
+  // 验证表单
+  if (!validateForm()) {
+    return
+  }
+
+  try {
+    loading.value = true
+
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      cssContent: form.cssCode.trim(),
+      htmlContent: form.htmlCode.trim(),
+      tags: form.tags,
+      isPublic: form.isPublic
+    }
+
+    if (isEditMode.value) {
+      await cssnippetStore.update(route.params.id, payload)
+      notificationService.success('保存成功！', '操作成功')
+    } else {
+      await cssnippetStore.create(payload)
+      notificationService.success('创建成功！', '操作成功')
+    }
+
+    // 保存成功后跳转到主页，增加延迟时间确保通知能显示
+    setTimeout(() => {
+      router.push('/')
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to save cssnippet:', err)
+    const errorMessage = cssnippetStore.error || '保存失败，请稍后重试'
+    error.value = errorMessage
+    notificationService.error(errorMessage, '操作失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const addTag = () => {
+  const tag = tagInput.value.trim()
+
+  if (tag && !form.tags.includes(tag) && form.tags.length < 5) {
+    form.tags.push(tag)
+    tagInput.value = ''
+  }
+}
+
+const removeTag = (tag) => {
+  const index = form.tags.indexOf(tag)
+  if (index > -1) {
+    form.tags.splice(index, 1)
+  }
+}
+
+const updatePreview = () => {
+  try {
+    // 清除之前的错误样式
+    previewStyles.value = {}
+
+    // 移除之前的样式元素
+    const existingStyle = document.getElementById('edit-preview-style');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // 直接通过DOM引用设置内容
+    if (previewRef.value) {
+      // 更新HTML内容
+      if (form.htmlCode.trim()) {
+        previewRef.value.innerHTML = form.htmlCode.trim()
+      } else {
+        // 提供默认HTML片段，让CSS样式有更好的预览效果
+        previewRef.value.innerHTML = '<div class="demo-container">\n  <h3>CSS预览</h3>\n  <p>这是一个默认的预览内容</p>\n  <div class="demo-box">示例元素</div>\n  <button class="demo-button">测试按钮</button>\n</div>'
+      }
+
+      // 使用try-catch确保即使CSS语法错误也不会阻塞功能
       try {
-        loading.value = true
-        const snippet = await cssnippetStore.fetchById(id)
-        
-        // 检查权限
-        if (snippet.user_id !== userStore.user.id) {
-          error.value = '您没有权限编辑这个代码段'
-          return
-        }
-        
-        // 填充表单
-        form.title = snippet.title
-        form.description = snippet.description
-        form.cssCode = snippet.css_content
-        form.htmlCode = snippet.html_content || ''
-        form.tags = snippet.tags.map(tag => tag.name)
-        form.isPublic = snippet.is_public
-        
-        // 更新预览
-        updatePreview()
-      } catch (err) {
-        console.error('Failed to load cssnippet:', err)
-        error.value = '加载代码段失败'
-      } finally {
-        loading.value = false
-      }
-    }
-    
-    const handleSubmit = async () => {
-      // 清空之前的错误信息
-      error.value = ''
-      
-      // 验证表单
-      if (!validateForm()) {
-        return
-      }
-      
-      try {
-        loading.value = true
-        
-        const payload = {
-          title: form.title.trim(),
-          description: form.description.trim(),
-          cssContent: form.cssCode.trim(),
-          htmlContent: form.htmlCode.trim(),
-          tags: form.tags,
-          isPublic: form.isPublic
-        }
-        
-        if (isEditMode.value) {
-          await cssnippetStore.update(route.params.id, payload)
-          alert('保存成功！')
-        } else {
-          await cssnippetStore.create(payload)
-          alert('创建成功！')
-        }
-        
-        // 保存成功后跳转到主页
-        router.push('/')
-      } catch (err) {
-        console.error('Failed to save cssnippet:', err)
-        const errorMessage = cssnippetStore.error || '保存失败，请稍后重试'
-        error.value = errorMessage
-        alert(errorMessage)
-      } finally {
-        loading.value = false
-      }
-    }
-    
-    const addTag = () => {
-      const tag = tagInput.value.trim()
-      
-      if (tag && !form.tags.includes(tag) && form.tags.length < 5) {
-        form.tags.push(tag)
-        tagInput.value = ''
-      }
-    }
-    
-    const removeTag = (tag) => {
-      const index = form.tags.indexOf(tag)
-      if (index > -1) {
-        form.tags.splice(index, 1)
-      }
-    }
-    
-    const updatePreview = () => {
-      try {
-        // 清除之前的错误样式
-        previewStyles.value = {}
-        
-        // 移除之前的样式元素
-        const existingStyle = document.getElementById('edit-preview-style');
-        if (existingStyle) {
-          existingStyle.remove();
-        }
-        
-        // 直接通过DOM引用设置内容
-        if (previewRef.value) {
-          // 更新HTML内容
-          if (form.htmlCode.trim()) {
-            previewRef.value.innerHTML = form.htmlCode.trim()
-          } else {
-            // 提供默认HTML片段，让CSS样式有更好的预览效果
-            previewRef.value.innerHTML = '<div class="demo-container">\n  <h3>CSS预览</h3>\n  <p>这是一个默认的预览内容</p>\n  <div class="demo-box">示例元素</div>\n  <button class="demo-button">测试按钮</button>\n</div>'
-          }
-          
-          // 使用try-catch确保即使CSS语法错误也不会阻塞功能
-          try {
-            // 创建新的样式元素，让CSS类选择器能够正常工作
-            const styleElement = document.createElement('style');
-            styleElement.id = 'edit-preview-style';
-            // 限制样式只应用于预览区域
-            styleElement.textContent = `#preview-element,
+        // 创建新的样式元素，让CSS类选择器能够正常工作
+        const styleElement = document.createElement('style');
+        styleElement.id = 'edit-preview-style';
+        // 限制样式只应用于预览区域
+        styleElement.textContent = `#preview-element,
 #preview-element * {
 ${form.cssCode}
 }`;
-            document.head.appendChild(styleElement);
-          } catch (cssError) {
-            console.warn('CSS语法错误:', cssError)
-            // 如果CSS语法错误，设置错误提示样式
-            previewRef.value.style.cssText = 'background-color: #ffebee; color: #c62828; padding: 16px; border-radius: 4px;'
-            previewRef.value.innerHTML = 'CSS语法错误'
-          }
-        }
-      } catch (err) {
-        console.error('预览更新失败:', err)
-        // 作为最后的保障，使用响应式对象设置错误样式
-        previewStyles.value = {
-          backgroundColor: '#ffebee',
-          color: '#c62828',
-          padding: '16px',
-          borderRadius: '4px'
-        }
+        document.head.appendChild(styleElement);
+      } catch (cssError) {
+        console.warn('CSS语法错误:', cssError)
+        // 如果CSS语法错误，设置错误提示样式
+        previewRef.value.style.cssText = 'background-color: #ffebee; color: #c62828; padding: 16px; border-radius: 4px;'
+        previewRef.value.innerHTML = 'CSS语法错误'
       }
     }
-    
-    const insertHtmlTemplate = (type) => {
-      const templates = {
-        'button': '<button>按钮</button>',
-        'card': '<div class="card">卡片内容</div>',
-        'link': '<a href="#">链接</a>',
-        'input': '<input type="text" placeholder="输入框">',
-        'text': '<div>默认文本</div>',
-        'nav': '<nav><ul><li><a href="#">首页</a></li><li><a href="#">关于</a></li><li><a href="#">联系</a></li></ul></nav>',
-        'cardGrid': '<div class="grid"><div class="card-item">卡片1</div><div class="card-item">卡片2</div><div class="card-item">卡片3</div></div>',
-        'form': '<form><div class="form-group"><label>姓名</label><input type="text"></div><div class="form-group"><label>邮箱</label><input type="email"></div><button type="submit">提交</button></form>',
-        'modal': '<div class="modal"><div class="modal-content"><h3>模态框标题</h3><p>模态框内容</p><button>关闭</button></div></div>',
-        'hero': '<header class="hero"><h1>英雄区域</h1><p>这里是引人注目的主标题区域</p><button>了解更多</button></header>',
-        'table': '<table><thead><tr><th>表头1</th><th>表头2</th><th>表头3</th></tr></thead><tbody><tr><td>数据1</td><td>数据2</td><td>数据3</td></tr><tr><td>数据4</td><td>数据5</td><td>数据6</td></tr></tbody></table>',
-        'testimonial': '<div class="testimonial"><div class="quote">"这是一段很棒的评价！"</div><div class="author">— 用户名称</div></div>',
-        'avatarGroup': '<div class="avatar-group"><div class="avatar">A</div><div class="avatar">B</div><div class="avatar">C</div><div class="avatar">+5</div></div>'
-      }
-      form.htmlCode = templates[type] || ''
-      updatePreview()
+  } catch (err) {
+    console.error('预览更新失败:', err)
+    // 作为最后的保障，使用响应式对象设置错误样式
+    previewStyles.value = {
+      backgroundColor: '#ffebee',
+      color: '#c62828',
+      padding: '16px',
+      borderRadius: '4px'
     }
-    
-    // 检查用户登录状态
-    const checkLoginStatus = () => {
-      if (!userStore.user) {
-        error.value = '请先登录'
-        setTimeout(() => {
-          router.push('/login')
-        }, 1500)
-      }
-    }
-    
-    // 组件挂载时
-    onMounted(() => {
-      checkLoginStatus()
-      if (isEditMode.value && userStore.user) {
-        loadExistingCssnippet()
-      } else {
-        // 为新创建的代码段设置默认预览样式
-        form.cssCode = `/* 请输入您的CSS代码 */\nbackground-color: #3498db;\ncolor: white;\npadding: 20px;\nborder-radius: 8px;\ntext-align: center;\nfont-size: 18px;`
-        updatePreview()
-      }
-    })
-    
-    // 监听标签输入，支持逗号分隔
-    watch(tagInput, (newValue) => {
-      if (newValue.includes(',')) {
-        const tags = newValue.split(',')
-        const lastTag = tags.pop().trim()
-        
-        tags.forEach(tag => {
-          const trimmedTag = tag.trim()
-          if (trimmedTag && !form.tags.includes(trimmedTag) && form.tags.length < 5) {
+  }
+}
+
+const insertHtmlTemplate = (type) => {
+  const templates = {
+    'button': '<button>按钮</button>',
+    'card': '<div class="card">卡片内容</div>',
+    'link': '<a href="#">链接</a>',
+    'input': '<input type="text" placeholder="输入框">',
+    'text': '<div>默认文本</div>',
+    'nav': '<nav><ul><li><a href="#">首页</a></li><li><a href="#">关于</a></li><li><a href="#">联系</a></li></ul></nav>',
+    'cardGrid': '<div class="grid"><div class="card-item">卡片1</div><div class="card-item">卡片2</div><div class="card-item">卡片3</div></div>',
+    'form': '<form><div class="form-group"><label>姓名</label><input type="text"></div><div class="form-group"><label>邮箱</label><input type="email"></div><button type="submit">提交</button></form>',
+    'modal': '<div class="modal"><div class="modal-content"><h3>模态框标题</h3><p>模态框内容</p><button>关闭</button></div></div>',
+    'hero': '<header class="hero"><h1>英雄区域</h1><p>这里是引人注目的主标题区域</p><button>了解更多</button></header>',
+    'table': '<table><thead><tr><th>表头1</th><th>表头2</th><th>表头3</th></tr></thead><tbody><tr><td>数据1</td><td>数据2</td><td>数据3</td></tr><tr><td>数据4</td><td>数据5</td><td>数据6</td></tr></tbody></table>',
+    'testimonial': '<div class="testimonial"><div class="quote">"这是一段很棒的评价！"</div><div class="author">— 用户名称</div></div>',
+    'avatarGroup': '<div class="avatar-group"><div class="avatar">A</div><div class="avatar">B</div><div class="avatar">C</div><div class="avatar">+5</div></div>'
+  }
+  form.htmlCode = templates[type] || ''
+  updatePreview()
+}
+
+// 检查用户登录状态
+const checkLoginStatus = () => {
+  if (!userStore.user) {
+    error.value = '请先登录'
+    setTimeout(() => {
+      router.push('/login')
+    }, 1500)
+  }
+}
+
+// 组件挂载时
+onMounted(() => {
+  checkLoginStatus()
+  if (isEditMode.value && userStore.user) {
+    loadExistingCssnippet()
+  } else {
+    // 为新创建的代码段设置默认预览样式
+    form.cssCode = `/* 请输入您的CSS代码 */\nbackground-color: #3498db;\ncolor: white;\npadding: 20px;\nborder-radius: 8px;\ntext-align: center;\nfont-size: 18px;`
+    updatePreview()
+  }
+})
+
+// 监听标签输入，支持逗号分隔
+watch(tagInput, (newValue) => {
+  if (newValue.includes(',')) {
+    const tags = newValue.split(',')
+    const lastTag = tags.pop().trim()
+
+    tags.forEach(tag => {
+      const trimmedTag = tag.trim()
+      if (trimmedTag && !form.tags.includes(trimmedTag) && form.tags.length < 5) {
             form.tags.push(trimmedTag)
           }
         })
@@ -549,11 +508,10 @@ ${form.cssCode}
   .form-actions {
     flex-direction: column;
   }
-  
+
   .form-actions .btn {
     width: 100%;
   }
-  
   .preview-box {
     padding: 20px;
   }
