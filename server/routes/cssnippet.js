@@ -184,7 +184,6 @@ router.get('/search', (req, res) => {
     LEFT JOIN cssnippet_tags ct ON c.id = ct.cssnippet_id
     LEFT JOIN tags t ON ct.tag_id = t.id
     WHERE (c.title LIKE ? OR c.description LIKE ? OR t.name LIKE ?)
-    AND c.created_at >= datetime('now', '-7 days')
     ORDER BY (c.likes_count * 0.5 + c.collections_count * 0.3 + c.comments_count * 0.2) DESC
     LIMIT ?
   `;

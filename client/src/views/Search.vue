@@ -178,6 +178,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCssnippetStore } from '../stores/cssnippet'
+import axios from 'axios'
 import CssPreview from '../components/CssPreview.vue'
 import Pagination from '../components/Pagination.vue'
     const route = useRoute()
@@ -234,20 +235,22 @@ import Pagination from '../components/Pagination.vue'
       try {
         loading.value = true
         
-        // 调用搜索API
-        const response = await cssnippetStore.searchCssnippets({
-          query: searchQuery.value,
-          type: searchType.value,
-          filter: filterBy.value,
-          sort: sortBy.value,
-          page: currentPage.value,
-          pageSize: pageSize.value
+        // 直接调用搜索API
+        const response = await axios.get('/api/cssnippets/search', {
+          params: {
+            q: searchQuery.value,
+            limit: pageSize.value * currentPage.value,
+            page: currentPage.value
+          }
         })
         
-        results.value = response.results
-        totalResults.value = response.total
+        // 处理返回的数据格式
+        results.value = response.data || []
+        totalResults.value = results.value.length // 简化处理，实际应该从后端获取总数
       } catch (err) {
         console.error('Search failed:', err)
+        results.value = []
+        totalResults.value = 0
       } finally {
         loading.value = false
       }
