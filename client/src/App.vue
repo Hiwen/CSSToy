@@ -53,11 +53,12 @@
             v-if="!isCreateOrEditPage" 
             to="/create" 
             class="btn btn-primary btn-create"
-          >新建CSS</router-link>
-          <router-link to="/profile" class="avatar-link">
-            <img :src="user.avatar || '/default-avatar.png'" :alt="user.username" class="avatar">
+            title="创建新的CSS代码段"
+          >创建</router-link>
+          <router-link to="/profile" class="avatar-link user-info">
+            <img :src="getAvatar(user.id)" :alt="user.username" class="avatar">
+            <span>{{ user.username }}</span>
           </router-link>
-          <span>{{ user.username }}</span>
         </div>
       </div>
     </header>
@@ -96,6 +97,11 @@ const searchTimer = ref(null)
 
 // 获取当前通知
 const currentNotification = computed(() => notificationService.getCurrentNotification())
+
+// 获取用户头像
+const getAvatar = (userId) => {
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
+}
 
 // 处理通知关闭事件
 const handleNotificationClose = () => {
@@ -245,5 +251,32 @@ main.container::-webkit-scrollbar {
   right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+}
+
+/* 用户信息样式 */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+  transition: transform 0.2s;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.user-info:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.user-info:hover .avatar {
+  transform: scale(1.05);
 }
 </style>

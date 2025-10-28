@@ -40,7 +40,7 @@
           </div>
         </div>
         
-        <div class="profile-actions">
+        <div class="profile-actions" style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
           <button class="btn btn-outline" @click="showEditProfile = true">
             <span class="icon">✏️</span>
             编辑资料
@@ -49,6 +49,11 @@
           <button class="btn btn-outline" @click="showChangePassword = true">
             <span class="icon">🔒</span>
             修改密码
+          </button>
+          
+          <button class="btn btn-outline" @click="handleLogout">
+            <span class="icon">🚪</span>
+            退出登录
           </button>
         </div>
       </div>
@@ -598,6 +603,11 @@ import Pagination from '../components/Pagination.vue'
       const handleCancelDelete = () => {
         showDeleteConfirm.value = false;
         currentDeleteCommentId.value = null;
+      };
+      
+      const handleLogout = () => {
+        userStore.logout();
+        router.push('/');
       };
     
     const goToDetail = (id) => {
