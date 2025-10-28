@@ -138,8 +138,16 @@ const truncateDescription = computed(() => {
   return desc.substring(0, props.maxDescriptionLength) + '...'
 })
 
+// 生成头像URL的函数
+const getAvatar = (userId) => {
+  if (!userId) return '/default-avatar.png'
+  // 使用DiceBear API基于用户ID生成头像
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
+}
+
 const avatarSrc = computed(() => {
-  return props.cssnippet.avatar || '/default-avatar.png'
+  // 优先使用用户ID生成头像，回退到原有的avatar字段或默认头像
+  return getAvatar(props.cssnippet.user_id || props.cssnippet.userId) || props.cssnippet.avatar || '/default-avatar.png'
 })
 
 const likesCount = computed(() => {
@@ -242,16 +250,14 @@ const toggleVisibility = async () => {
 }
 
 .cssnippet-title {
-  margin: 5px 0 10px;
   font-size: 18px;
   color: #333;
 }
 
 .cssnippet-description {
-  margin-bottom: 10px;
   color: #666;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.4; /* 稍微减小行高 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -262,8 +268,8 @@ const toggleVisibility = async () => {
 .cssnippet-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: 6px;
+  margin-bottom: 8px; 
 }
 
 .tag {
@@ -284,11 +290,11 @@ const toggleVisibility = async () => {
 }
 
 .cssnippet-info {
-  padding: 15px;
+  padding: 0px; 
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto;
+  margin-top: 8px;
 }
 
 .author-info {
@@ -332,11 +338,10 @@ const toggleVisibility = async () => {
 }
 
 .snippet-actions {
-  padding: 10px;
+  padding: 1px;
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-top: auto;
+  gap: 8px;
 }
 
 .snippet-actions .btn {
