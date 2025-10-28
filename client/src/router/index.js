@@ -36,6 +36,12 @@ const routes = [
     props: true
   },
   {
+    path: '/detail/:id',
+    name: 'CSSnippetDetail',
+    component: CSSnippetDetail,
+    props: true
+  },
+  {
     path: '/cssnippet/new',
     name: 'CSSnippetCreate',
     component: CSSnippetEdit,

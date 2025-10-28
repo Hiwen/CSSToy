@@ -23,11 +23,11 @@
       </div>
       
       <div class="cssnippet-meta">
-        <button class="meta-item btn-icon" @click.stop="$emit('like')" :class="{ 'active': isLiked }">
+        <button class="meta-item btn-icon" @click.stop="onLike" :class="{ 'active': isLiked }">
           <span class="icon">{{ isLiked ? '❤️' : '🤍' }}</span>
           <span>{{ likesCount }}</span>
         </button>
-        <button class="meta-item btn-icon" @click.stop="$emit('favorite')" :class="{ 'active': isFavorited }">
+        <button class="meta-item btn-icon" @click.stop="onFavorite" :class="{ 'active': isFavorited }">
           <span class="icon">{{ isFavorited ? '⭐' : '☆' }}</span>
           <span>{{ favoritesCount }}</span>
         </button>
@@ -126,7 +126,15 @@ const props = defineProps({
 })
 
 // 定义事件
-const emit = defineEmits(['click', 'view', 'refresh'])
+const emit = defineEmits(['click', 'view', 'refresh', 'favorite', 'like'])
+
+const onFavorite = (event) => {
+  emit('favorite', event)
+}
+
+const onLike = (event) => {
+  emit('like', event)
+}
 
 // 计算属性
 const truncateDescription = computed(() => {
