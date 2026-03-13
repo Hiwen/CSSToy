@@ -37,9 +37,7 @@ const routes = [
   },
   {
     path: '/detail/:id',
-    name: 'CSSnippetDetail',
-    component: CSSnippetDetail,
-    props: true
+    redirect: to => `/cssnippet/${to.params.id}`
   },
   {
     path: '/cssnippet/new',
