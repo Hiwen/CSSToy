@@ -262,14 +262,7 @@ const toggleLike = async (event) => {
   }
   
   try {
-    if (cssnippet.value.isLiked) {
-      await cssnippetStore.unlike(cssnippet.value.id)
-      cssnippet.value.likes_count--
-    } else {
-      await cssnippetStore.like(cssnippet.value.id)
-      cssnippet.value.likes_count++
-    }
-    cssnippet.value.isLiked = !cssnippet.value.isLiked
+    await cssnippetStore.toggleLike(cssnippet.value.id)
   } catch (err) {
     console.error('Toggle like failed:', err)
   }
@@ -287,14 +280,7 @@ const toggleFavorite = async (event) => {
   }
   
   try {
-    if (cssnippet.value.isCollected) {
-      await cssnippetStore.removeCollection(cssnippet.value.id)
-      cssnippet.value.collections_count--
-    } else {
-      await cssnippetStore.addCollection(cssnippet.value.id)
-      cssnippet.value.collections_count++
-    }
-    cssnippet.value.isCollected = !cssnippet.value.isCollected
+    await cssnippetStore.toggleCollect(cssnippet.value.id)
   } catch (err) {
     console.error('Toggle favorite failed:', err)
   }
